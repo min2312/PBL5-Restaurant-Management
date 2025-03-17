@@ -1,0 +1,16 @@
+.table-selection {
+	display: flex;
+	gap: 10px;
+}
+
+.table-img {
+	width: 100px;
+	height: 100px;
+	cursor: pointer;
+	border: 2px solid transparent;
+	transition: border-color 0.3s;
+}
+
+.table-img.selected {
+	border-color: #007bff;
+}
