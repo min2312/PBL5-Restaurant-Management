@@ -1,0 +1,51 @@
+.navbarClient {
+	height: 60px;
+	background-color: brown;
+	display: flex;
+	justify-content: center;
+}
+
+.navContainer {
+	width: 100%;
+	max-width: 1024px;
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-left: 10%;
+	/* margin-top: 10px; */
+	padding-top: -100px;
+}
+
+.logo {
+	font-size: 20px;
+	font-weight: 500;
+	margin-left: -200px !important;
+}
+
+.navButton {
+	margin-left: 20px;
+	border: none;
+	padding: 5px 10px;
+	cursor: pointer;
+	color: #003580;
+}
+
+.NavDropdown {
+	margin-right: 50px;
+}
+.nav-link {
+	color: white;
+}
+.NavDropdown .dropdown-toggle:focus,
+.NavDropdown .dropdown-toggle:hover,
+.NavDropdown .dropdown-toggle:active {
+	color: white;
+}
+.NavDropdown .dropdown-item:hover {
+	background-color: #f0f0f0;
+	color: #ffc107;
+}
+.nav-link:hover {
+	color: #ffc107 !important;
+}
