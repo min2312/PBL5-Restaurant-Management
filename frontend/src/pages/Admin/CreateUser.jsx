@@ -1,35 +1,58 @@
 import React, { useState } from "react";
 import { Button, Modal, Form } from "react-bootstrap";
-import axios from "../../setup/axios";
+import { useHistory } from "react-router-dom";
+import { CreateNewUser } from "../../services/userService";
+import { toast } from "react-toastify";
 
 const CreateUser = () => {
+	const history = useHistory();
 	const [showModal, setShowModal] = useState(false);
 	const [newUser, setNewUser] = useState({
-		username: "",
+		fullName: "",
 		email: "",
 		password: "",
 		role: "receptionist",
 	});
 
 	const handleShowModal = () => setShowModal(true);
-	const handleCloseModal = () => setShowModal(false);
+	const handleCloseModal = () => {
+		setNewUser({
+			fullName: "",
+			email: "",
+			password: "",
+			role: "receptionist",
+		});
+		setShowModal(false);
+	};
 
 	const handleInputChange = (e) => {
 		const { name, value } = e.target;
 		setNewUser({ ...newUser, [name]: value });
 	};
 
-	const handleCreateUser = async () => {
+	const handleCreateUser = async (e) => {
+		e.preventDefault();
+		if (!newUser.fullName || !newUser.email || !newUser.password) {
+			toast.error("Please fill in all fields");
+			return;
+		}
 		try {
-			const response = await axios.post("/api/create-new-user", newUser);
-			if (response.errCode === 0) {
-				alert("User created successfully!");
+			const response = await CreateNewUser(newUser);
+			if (response && response.errCode === 0) {
+				setNewUser({
+					fullName: "",
+					email: "",
+					password: "",
+					role: "receptionist",
+				});
+				toast.success("Create User Success");
 				handleCloseModal();
 			} else {
-				alert(response.errMessage);
+				toast.error(response.errMessage);
 			}
-		} catch (error) {
-			console.error("Error creating user:", error);
+		} catch (e) {
+			toast.error("Create user failed. Please try again.");
+			console.log(e);
 		}
 	};
 
@@ -50,8 +73,8 @@ const CreateUser = () => {
 							<Form.Control
 								type="text"
 								placeholder="Enter username"
-								name="username"
-								value={newUser.username}
+								name="fullName"
+								value={newUser.fullName}
 								onChange={handleInputChange}
 							/>
 						</Form.Group>
