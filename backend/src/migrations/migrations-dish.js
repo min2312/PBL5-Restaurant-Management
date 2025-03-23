@@ -17,6 +17,13 @@ module.exports = {
 				type: Sequelize.FLOAT,
 				allowNull: false,
 			},
+			Category: {
+				type: Sequelize.STRING,
+				allowNull: false,
+			},
+			pic_link: {
+				type: Sequelize.STRING,
+			},
 			createdAt: {
 				allowNull: false,
 				type: Sequelize.DATE,

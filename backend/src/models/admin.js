@@ -1,9 +1,10 @@
 "use strict";
+const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
 	class Admin extends Model {}
 	Admin.init(
 		{
-			username: { type: DataTypes.STRING, unique: true, allowNull: false },
+			email: { type: DataTypes.STRING, unique: true, allowNull: false },
 			password: { type: DataTypes.STRING, allowNull: false },
 		},
 		{
