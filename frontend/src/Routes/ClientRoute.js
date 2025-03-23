@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 import ReceptionistDashboard from "../pages/Receptionist/ReceptionistDashboard";
 import OrderMenu from "../pages/Waiter/orderMenu";
 import LoginForm from "../pages/Login/LoginForm";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
 
 const ClientRoute = () => {
 	return (
@@ -24,6 +25,7 @@ const ClientRoute = () => {
 					component={ReceptionistDashboard}
 				/>
 				<Route path="/order-menu" component={OrderMenu} />
+				<Route path="/admin-dashboard" component={AdminDashboard} />
 				<Route path="/" exact>
 					<ReceptionistDashboard />
 				</Route>
