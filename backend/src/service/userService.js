@@ -23,6 +23,7 @@ let HandleUserLogin = (email, password) => {
 							id: user.id,
 							email: user.email,
 							fullName: user.fullName,
+							role: user.role,
 						};
 						let token = CreateJWT(payload);
 						userData.errCode = 0;
@@ -136,7 +137,7 @@ let CreateNewUser = (data) => {
 					email: data.email,
 					password: hashPasswordFromBcrypt,
 					fullName: data.fullName,
-					phone: data.phone,
+					role: data.role,
 				});
 				resolve({
 					errCode: 0,
@@ -144,7 +145,7 @@ let CreateNewUser = (data) => {
 					user: new_user,
 				});
 			}
-		} catch {
+		} catch (e) {
 			reject(e);
 		}
 	});
