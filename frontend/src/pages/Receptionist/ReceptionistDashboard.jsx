@@ -28,7 +28,7 @@ const ReceptionistDashboard = () => {
 
 	const handleProceedToOrder = () => {
 		history.push({
-			pathname: "/order-menu",
+			pathname: "/waiter",
 			state: { customer: customerInfo || newCustomer, table },
 		});
 		setModalIsOpen(false);
