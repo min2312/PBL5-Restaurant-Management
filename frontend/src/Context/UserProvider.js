@@ -33,12 +33,11 @@ const UserProvider = ({ children }) => {
 			let email = response.DT.email;
 			let fullName = response.DT.fullName;
 			let id = response.DT.id;
-			let phone = response.DT.phone;
-			let price = response.DT.price;
+			let role = response.DT.role;
 			let data = {
 				isAuthenticated: true,
 				token,
-				account: { id, email, fullName, phone, price },
+				account: { id, email, fullName, role },
 				isLoading: false,
 			};
 			setUser(data);

@@ -4,30 +4,28 @@ import ReceptionistDashboard from "../pages/Receptionist/ReceptionistDashboard";
 import OrderMenu from "../pages/Waiter/orderMenu";
 import LoginForm from "../pages/Login/LoginForm";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
+import Home from "../pages/Home/Home";
+import PrivateRoutesRole from "./PrivateRoutesRole";
+import PrivateRoutes from "./PrivateRoutes";
 
 const ClientRoute = () => {
 	return (
 		<div>
 			<Switch>
-				{/* <PrivateRoutes path="/users" component={Users} />
-				<PrivateRoutes path="/ticket" exact component={Ticket} />
-				<PrivateRoutes path="/info-car/id=:id_user" component={InfoCar} />
-				<PrivateRoutes path="/ticket/create" component={Add_Ticket} />
-				<PrivateRoutes path="/ProcessPayment" component={PaymentCall} />
-				<PrivateRoutes path="/SlotCar" component={Slot_Car} />
-				<PrivateRoutes path="/Account/DepositMoney" component={DepositMoney} /> */}
-				{/* <Route path="/admin">
-					<ReceptionistDashboard />
-				</Route> */}
 				<Route path="/login" component={LoginForm} />
-				<Route
-					path="/receptionist-dashboard"
+				<PrivateRoutesRole
+					path="/receptionist"
 					component={ReceptionistDashboard}
+					role="receptionist"
 				/>
-				<Route path="/order-menu" component={OrderMenu} />
-				<Route path="/admin-dashboard" component={AdminDashboard} />
+				<PrivateRoutesRole path="/waiter" component={OrderMenu} role="waiter" />
+				<PrivateRoutesRole
+					path="/admin"
+					component={AdminDashboard}
+					role="admin"
+				/>
 				<Route path="/" exact>
-					<ReceptionistDashboard />
+					<Home />
 				</Route>
 				<Route path="*">404 Not Found</Route>
 			</Switch>
