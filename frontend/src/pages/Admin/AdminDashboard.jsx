@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Container, Row, Col, Nav } from "react-bootstrap";
+import React, { useContext, useState } from "react";
+import { Container, Row, Col, Nav, Dropdown } from "react-bootstrap";
 import Dashboard from "./Dashboard";
 import CreateUser from "./CreateUser";
 import ManageUsers from "./ManageUsers";
@@ -7,10 +7,24 @@ import ManageTables from "./ManageTables";
 import ManageOrders from "./ManageOrders";
 import ManageReservations from "./ManageReservations";
 import "./AdminDashboard.css";
-
+import { UserContext } from "../../Context/UserProvider";
+import { toast } from "react-toastify";
+import { LogOutAdmin } from "../../services/adminService";
+import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
 const AdminDashboard = () => {
+	const history = useHistory();
 	const [activeView, setActiveView] = useState("dashboard");
-
+	const { logoutContext } = useContext(UserContext);
+	const handleLogout = async () => {
+		let data = await LogOutAdmin();
+		logoutContext();
+		if (data && data.errCode === 0) {
+			history.push("/");
+			toast.success("Log out success");
+		} else {
+			toast.error(data.errMessage);
+		}
+	};
 	const renderView = () => {
 		switch (activeView) {
 			case "dashboard":
@@ -77,8 +91,29 @@ const AdminDashboard = () => {
 						>
 							Manage Reservations
 						</Nav.Link>
+
+						{/* Dropdown Menu */}
+						<div className="dropdown admin-dropdown position-absolute bottom-0 start-50 translate-middle-x mb-3">
+							<Dropdown>
+								<Dropdown.Toggle variant="primary" id="adminDropdown">
+									Welcome, Admin
+								</Dropdown.Toggle>
+
+								<Dropdown.Menu>
+									<Dropdown.Item
+										onClick={() => alert("Change Password clicked!")}
+									>
+										Change Password
+									</Dropdown.Item>
+									<Dropdown.Item onClick={() => handleLogout()}>
+										Logout
+									</Dropdown.Item>
+								</Dropdown.Menu>
+							</Dropdown>
+						</div>
 					</Nav>
 				</Col>
+
 				<Col md={10} className="content">
 					{renderView()}
 				</Col>
