@@ -3,12 +3,14 @@ import { Route, Redirect } from "react-router-dom";
 import { UserContext } from "../Context/UserProvider";
 
 const PrivateRoutesRole = ({ component: Component, role, ...rest }) => {
-	const { user } = useContext(UserContext);
+	const { user, admin } = useContext(UserContext);
+
 	return (
 		<Route
 			{...rest}
 			render={(props) =>
-				user && user.isAuthenticated && user.account.role === role ? (
+				(user && user.isAuthenticated && user.account.role === role) ||
+				admin.isAuthenticated ? (
 					<Component {...props} />
 				) : (
 					<Redirect

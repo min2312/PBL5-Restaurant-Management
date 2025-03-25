@@ -7,12 +7,14 @@ import AdminDashboard from "../pages/Admin/AdminDashboard";
 import Home from "../pages/Home/Home";
 import PrivateRoutesRole from "./PrivateRoutesRole";
 import PrivateRoutes from "./PrivateRoutes";
+import LoginAdmin from "../pages/Login/LoginAdmin";
 
 const ClientRoute = () => {
 	return (
 		<div>
 			<Switch>
 				<Route path="/login" component={LoginForm} />
+				<Route path="/login_admin" component={LoginAdmin} />
 				<PrivateRoutesRole
 					path="/receptionist"
 					component={ReceptionistDashboard}
