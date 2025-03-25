@@ -12,6 +12,24 @@ const qs = require("qs");
 const axios = require("axios");
 require("dotenv").config();
 
+let GetAllTable = (tableid) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let tables = "";
+			if (tableid === "ALL") {
+				tables = await db.Table.findAll({});
+			}
+			if (tableid && tableid !== "ALL") {
+				tables = await db.Table.findAll({
+					where: { id: tableid },
+				});
+			}
+			resolve(tables);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
 let CreateNewCar = (data, user) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -779,6 +797,7 @@ let DepositMoney = (data) => {
 	});
 };
 module.exports = {
+	GetAllTable,
 	CreateNewCar,
 	GetAllCar,
 	DeleteCar,

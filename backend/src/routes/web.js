@@ -3,7 +3,7 @@ import userController from "../controllers/userController";
 import adminController from "../controllers/adminController";
 import { checkUserJWT, CreateJWT } from "../middleware/JWT_Action";
 import passport from "passport";
-// import apiController from "../controllers/apiController";
+import apiController from "../controllers/apiController";
 let router = express.Router();
 
 let initWebRoutes = (app) => {
@@ -12,7 +12,7 @@ let initWebRoutes = (app) => {
 	router.post("/api/admin_login", adminController.HandleLoginAdmin);
 	router.post("/api/logout", userController.HandleLogOut);
 	router.post("/api/logoutAdmin", adminController.HandleLogOut);
-	// router.get("/api/get-all-user", userController.HandleGetAllUser);
+	router.get("/api/get-all-table", apiController.HandleGetAllTable);
 	// router.get("/api/get-all-slot", apiController.HandleGetAllSlot);
 	// router.get("/api/get-info-car", userController.HandleGetInfoCar);
 	// router.get("/api/getAllCar", apiController.HandleGetAllCar);
