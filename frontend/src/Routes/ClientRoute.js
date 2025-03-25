@@ -1,13 +1,13 @@
 import React from "react";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 import ReceptionistDashboard from "../pages/Receptionist/ReceptionistDashboard";
-import OrderMenu from "../pages/Waiter/orderMenu";
 import LoginForm from "../pages/Login/LoginForm";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import Home from "../pages/Home/Home";
 import PrivateRoutesRole from "./PrivateRoutesRole";
 import PrivateRoutes from "./PrivateRoutes";
 import LoginAdmin from "../pages/Login/LoginAdmin";
+import Waiter from "../pages/Waiter/Waiter";
 
 const ClientRoute = () => {
 	return (
@@ -20,7 +20,7 @@ const ClientRoute = () => {
 					component={ReceptionistDashboard}
 					role="receptionist"
 				/>
-				<PrivateRoutesRole path="/waiter" component={OrderMenu} role="waiter" />
+				<PrivateRoutesRole path="/waiter" component={Waiter} role="waiter" />
 				<PrivateRoutesRole
 					path="/admin"
 					component={AdminDashboard}

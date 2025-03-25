@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { Modal, Button } from "react-bootstrap";
 import "./ReceptionistDashboard.css";
+import CustomerModal from "../../Component/Customer/CustomerModal";
+import { GetAllTable } from "../../services/apiService";
+import { toast } from "react-toastify";
 
 const ReceptionistDashboard = () => {
 	const [phoneNumber, setPhoneNumber] = useState("");
@@ -10,7 +13,23 @@ const ReceptionistDashboard = () => {
 	const [table, setTable] = useState("");
 	const [modalIsOpen, setModalIsOpen] = useState(false);
 	const history = useHistory();
-
+	const GetData = async () => {
+		try {
+			let id_Table = "ALL";
+			let respone = await GetAllTable(id_Table);
+			if (respone && respone.errCode === 0) {
+				setTable(respone.table);
+			} else {
+				toast.error("Get Data Failed");
+			}
+		} catch (e) {
+			toast.error("Get Data Failed");
+			console.log("err:", e);
+		}
+	};
+	useEffect(() => {
+		GetData();
+	}, []);
 	const handleCheckCustomer = () => {
 		// Logic to check if customer exists and fetch details
 		// setCustomerInfo(fetchedCustomerInfo);
@@ -22,14 +41,17 @@ const ReceptionistDashboard = () => {
 	};
 
 	const handleTableSelection = (table) => {
-		setTable(table);
 		setModalIsOpen(true);
 	};
 
-	const handleProceedToOrder = () => {
-		history.push({
-			pathname: "/waiter",
-			state: { customer: customerInfo || newCustomer, table },
+	const handleProceedToOrder = async () => {
+		// Update table status on the server
+		await fetch(`/api/tables/${table}`, {
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ customer: customerInfo || newCustomer }),
 		});
 		setModalIsOpen(false);
 	};
@@ -40,85 +62,41 @@ const ReceptionistDashboard = () => {
 			<div className="rooms-section spad">
 				<div className="container">
 					<div className="row">
-						{["Table 1", "Table 2", "Table 3"].map((item, index) => (
-							<div
-								className={`col-lg-4 col-md-6 mb-4 d-flex align-items-stretch`}
-								key={index}
-							>
-								<div className="room-item">
-									<img src={`table${index + 1}.jpg`} alt="" />
-									<div className="ri-text">
-										<h4>{item}</h4>
+						{table &&
+							table.length > 0 &&
+							table.map((item, index) => (
+								<div
+									className={`col-lg-4 col-md-6 mb-3 d-flex align-items-stretch`}
+									key={index}
+								>
+									<div className="room-item text-center">
+										<i className="bi bi-table" style={{ fontSize: "2rem" }}></i>{" "}
+										<h4>Table {item.tableNumber}</h4>
 										<button
 											type="button"
-											onClick={() => handleTableSelection(item)}
-											className="btn btn-primary"
+											onClick={() => handleTableSelection(item.tableNumber)}
+											className="btn btn-primary mt-2"
 										>
 											Select
 										</button>
 									</div>
 								</div>
-							</div>
-						))}
+							))}
 					</div>
 				</div>
 			</div>
-			<Modal show={modalIsOpen} onHide={() => setModalIsOpen(false)}>
-				<Modal.Header closeButton>
-					<Modal.Title>Customer Information</Modal.Title>
-				</Modal.Header>
-				<Modal.Body>
-					<input
-						type="text"
-						className="form-control mb-2"
-						placeholder="Enter phone number"
-						value={phoneNumber}
-						onChange={(e) => setPhoneNumber(e.target.value)}
-					/>
-					<Button variant="primary" onClick={handleCheckCustomer}>
-						Check
-					</Button>
-					{customerInfo && (
-						<div className="mt-3">
-							<p>Name: {customerInfo.name}</p>
-							<p>Points: {customerInfo.points}</p>
-						</div>
-					)}
-					{!customerInfo && (
-						<div className="mt-3">
-							<input
-								type="text"
-								className="form-control mb-2"
-								placeholder="Name"
-								value={newCustomer.name}
-								onChange={(e) =>
-									setNewCustomer({ ...newCustomer, name: e.target.value })
-								}
-							/>
-							<input
-								type="text"
-								className="form-control mb-2"
-								placeholder="Phone"
-								value={newCustomer.phone}
-								onChange={(e) =>
-									setNewCustomer({ ...newCustomer, phone: e.target.value })
-								}
-							/>
-							<Button variant="primary" onClick={handleNewCustomer}>
-								Add Customer
-							</Button>
-						</div>
-					)}
-				</Modal.Body>
-				<Modal.Footer>
-					<Button variant="secondary" onClick={() => setModalIsOpen(false)}>
-						Close
-					</Button>
-					<Button variant="success" onClick={handleProceedToOrder}>
-						Proceed to Order
-					</Button>
-				</Modal.Footer>
-			</Modal>
+			<CustomerModal
+				show={modalIsOpen}
+				onHide={() => setModalIsOpen(false)}
+				phoneNumber={phoneNumber}
+				setPhoneNumber={setPhoneNumber}
+				handleCheckCustomer={handleCheckCustomer}
+				customerInfo={customerInfo}
+				newCustomer={newCustomer}
+				setNewCustomer={setNewCustomer}
+				handleNewCustomer={handleNewCustomer}
+				handleProceedToOrder={handleProceedToOrder}
+			/>
 		</div>
 	);
 };
