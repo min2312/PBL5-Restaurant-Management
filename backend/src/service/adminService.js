@@ -20,8 +20,9 @@ let HandleAdminLogin = (email, password) => {
 					let check = password === user.password;
 					if (check) {
 						let payload = {
-							id_admin: user.id_admin,
+							id: user.id,
 							email: user.email,
+							role: "admin",
 						};
 						let token = CreateJWT(payload);
 						userData.errCode = 0;

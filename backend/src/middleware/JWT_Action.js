@@ -47,23 +47,38 @@ const checkUserJWT = (req, res, next) => {
 		return next();
 	}
 	let cookies = req.cookies;
-	if (cookies && cookies.jwt) {
-		let token = cookies.jwt;
-		let decoded = verifyToken(token);
-		if (decoded) {
-			req.user = decoded;
-			req.token = token;
-			next();
-		} else {
-			return res.status(401).json({
-				errCode: -1,
-				errMessage: "Not Authencated the user",
-			});
+	if (cookies && (cookies.jwt || cookies.jwt2)) {
+		if (cookies.jwt) {
+			let token = cookies.jwt;
+			let decoded = verifyToken(token);
+			if (decoded) {
+				req.user = decoded;
+				req.token = token;
+			} else {
+				return res.status(401).json({
+					errCode: -1,
+					errMessage: "Not Authenticated the user",
+				});
+			}
 		}
+		if (cookies.jwt2) {
+			let token = cookies.jwt2;
+			let decoded = verifyToken(token);
+			if (decoded) {
+				req.admin = decoded;
+				req.adminToken = token;
+			} else {
+				return res.status(401).json({
+					errCode: -1,
+					errMessage: "Not Authenticated the admin",
+				});
+			}
+		}
+		next();
 	} else {
 		return res.status(401).json({
 			errCode: -1,
-			errMessage: "Not Authencated the user",
+			errMessage: "Not Authenticated the user or admin",
 		});
 	}
 };
