@@ -34,6 +34,10 @@ instance.interceptors.response.use(
 		switch (status) {
 			// authentication (token related issues)
 			case 401: {
+				if (err && err.response.data.errCode === -2) {
+					alert("Token has expired. Please log in again.");
+					window.location.href = "/login";
+				}
 				return err.response.data;
 			}
 
