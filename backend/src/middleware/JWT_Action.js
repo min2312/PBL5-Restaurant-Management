@@ -34,6 +34,9 @@ const verifyToken = (token) => {
 	try {
 		decoded = jwt.verify(token, key);
 	} catch (e) {
+		if (e.name === "TokenExpiredError") {
+			return { error: "TokenExpiredError", message: "Token has expired" };
+		}
 		console.log(e);
 	}
 	return decoded;
@@ -51,6 +54,12 @@ const checkUserJWT = (req, res, next) => {
 		if (cookies.jwt) {
 			let token = cookies.jwt;
 			let decoded = verifyToken(token);
+			if (decoded.error === "TokenExpiredError") {
+				return res.status(401).json({
+					errCode: -2,
+					errMessage: "Token has expired. Please log in again.",
+				});
+			}
 			if (decoded) {
 				req.user = decoded;
 				req.token = token;
@@ -64,13 +73,19 @@ const checkUserJWT = (req, res, next) => {
 		if (cookies.jwt2) {
 			let token = cookies.jwt2;
 			let decoded = verifyToken(token);
+			if (decoded.error === "TokenExpiredError") {
+				return res.status(401).json({
+					errCode: -2,
+					errMessage: "Token has expired. Please log in again.",
+				});
+			}
 			if (decoded) {
 				req.admin = decoded;
 				req.adminToken = token;
 			} else {
 				return res.status(401).json({
 					errCode: -1,
-					errMessage: "Not Authenticated the admin",
+					errMessage: "Not Authenticated the user",
 				});
 			}
 		}
@@ -78,13 +93,32 @@ const checkUserJWT = (req, res, next) => {
 	} else {
 		return res.status(401).json({
 			errCode: -1,
-			errMessage: "Not Authenticated the user or admin",
+			errMessage: "Not Authenticated the user",
 		});
 	}
+};
+
+const verifySocketToken = (socket, next) => {
+	const token = socket.handshake.headers.authorization?.split(" ")[1];
+	if (!token) {
+		return next(new Error("Authentication error: Token is missing"));
+	}
+
+	const decoded = verifyToken(token);
+	if (decoded && decoded.error === "TokenExpiredError") {
+		return next(new Error("Authentication error: Token has expired"));
+	}
+	if (!decoded) {
+		return next(new Error("Authentication error: Invalid token"));
+	}
+
+	socket.user = decoded;
+	next();
 };
 
 module.exports = {
 	CreateJWT,
 	verifyToken,
 	checkUserJWT,
+	verifySocketToken,
 };
