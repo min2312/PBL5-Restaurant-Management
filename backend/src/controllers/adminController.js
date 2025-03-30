@@ -1,4 +1,5 @@
 import adminService from "../service/adminService";
+require("dotenv").config();
 let HandleLoginAdmin = async (req, res) => {
 	let email = req.body.email;
 	let pass = req.body.password;
@@ -13,7 +14,7 @@ let HandleLoginAdmin = async (req, res) => {
 	if (userdata && userdata.DT && userdata.DT.access_token) {
 		res.cookie("jwt2", userdata.DT.access_token, {
 			httpOnly: true,
-			maxAge: 60 * 60 * 1000,
+			maxAge: process.env.maxAgeCookie,
 		});
 	}
 	return res.status(200).json({
