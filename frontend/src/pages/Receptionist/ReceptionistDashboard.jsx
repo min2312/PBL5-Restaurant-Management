@@ -1,18 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { Modal, Button } from "react-bootstrap";
 import "./ReceptionistDashboard.css";
 import CustomerModal from "../../Component/Customer/CustomerModal";
-import { GetAllTable } from "../../services/apiService";
+import {
+	CheckCustomer,
+	CreateNewCustomer,
+	GetAllTable,
+} from "../../services/apiService";
 import { toast } from "react-toastify";
+import { io } from "socket.io-client";
+import { UserContext } from "../../Context/UserProvider";
 
 const ReceptionistDashboard = () => {
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [customerInfo, setCustomerInfo] = useState(null);
 	const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
 	const [table, setTable] = useState("");
+	const [socket, setSocket] = useState(null);
 	const [modalIsOpen, setModalIsOpen] = useState(false);
 	const history = useHistory();
+	const { user } = useContext(UserContext);
+
 	const GetData = async () => {
 		try {
 			let id_Table = "ALL";
@@ -27,33 +36,94 @@ const ReceptionistDashboard = () => {
 			console.log("err:", e);
 		}
 	};
+
 	useEffect(() => {
 		GetData();
 	}, []);
-	const handleCheckCustomer = () => {
-		// Logic to check if customer exists and fetch details
-		// setCustomerInfo(fetchedCustomerInfo);
+
+	useEffect(() => {
+		if (!user || !user.token) {
+			toast.error("User not authenticated");
+			return;
+		}
+
+		const newSocket = io("http://localhost:8081", {
+			extraHeaders: {
+				Authorization: `Bearer ${user.token}`,
+			},
+		});
+
+		newSocket.on("connect", () => {
+			console.log("WebSocket connected:", newSocket.id);
+		});
+
+		newSocket.on("connect_error", (err) => {
+			console.error("Connection error:", err.message);
+		});
+
+		newSocket.on("disconnect", (reason) => {
+			console.warn("WebSocket disconnected:", reason);
+		});
+
+		setSocket(newSocket);
+
+		return () => {
+			newSocket.disconnect();
+		};
+	}, [user]);
+
+	const handleCheckCustomer = async () => {
+		if (!phoneNumber) {
+			toast.error("Please enter phone number");
+		} else {
+			let checkinfo = await CheckCustomer(phoneNumber);
+			if (checkinfo && checkinfo.errCode === 0) {
+				setCustomerInfo(checkinfo.customer);
+			} else {
+				toast.error(checkinfo.errMessage);
+			}
+		}
 	};
 
-	const handleNewCustomer = () => {
-		// Logic to add new customer
-		// setCustomerInfo(newCustomer);
+	const handleNewCustomer = async () => {
+		try {
+			let response = await CreateNewCustomer(newCustomer);
+			if (response && response.errCode === 0) {
+				setCustomerInfo(response.customer);
+				setPhoneNumber(newCustomer.phone);
+				setNewCustomer({ name: "", phone: "" });
+				toast.success("Create New Customer Success");
+			} else {
+				toast.error(response.errMessage);
+			}
+		} catch (error) {
+			toast.error("Create New Customer Failed");
+		}
 	};
 
 	const handleTableSelection = (table) => {
 		setModalIsOpen(true);
 	};
 
+	const handleCloseInfo = () => {
+		setCustomerInfo(null);
+		setPhoneNumber("");
+	};
+
 	const handleProceedToOrder = async () => {
-		// Update table status on the server
-		await fetch(`/api/tables/${table}`, {
-			method: "PUT",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ customer: customerInfo || newCustomer }),
-		});
+		if (!socket) {
+			toast.error("Socket connection not established");
+			return;
+		}
+
+		socket.emit("updateTable", table.tableNumber);
 		setModalIsOpen(false);
+		handleCloseInfo();
+		toast.success("Proceed to Order Success");
+
+		setCustomerInfo(null);
+		setPhoneNumber("");
+		setNewCustomer({ name: "", phone: "" });
 	};
 
 	return (
@@ -87,6 +157,7 @@ const ReceptionistDashboard = () => {
 			</div>
 			<CustomerModal
 				show={modalIsOpen}
+				close={handleCloseInfo}
 				onHide={() => setModalIsOpen(false)}
 				phoneNumber={phoneNumber}
 				setPhoneNumber={setPhoneNumber}

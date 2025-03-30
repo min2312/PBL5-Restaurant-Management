@@ -4,7 +4,6 @@ import { UserContext } from "../Context/UserProvider";
 
 const PrivateRoutesRole = ({ component: Component, role, ...rest }) => {
 	const { user, admin } = useContext(UserContext);
-
 	return (
 		<Route
 			{...rest}

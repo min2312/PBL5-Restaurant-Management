@@ -75,7 +75,7 @@ const UserProvider = ({ children }) => {
 
 	useEffect(() => {
 		if (
-			window.location.pathname !== "/" &&
+			// window.location.pathname !== "/" &&
 			window.location.pathname !== "/login_admin" &&
 			window.location.pathname !== "/login" &&
 			window.location.pathname !== "/register"

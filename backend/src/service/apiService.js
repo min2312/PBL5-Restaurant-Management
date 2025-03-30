@@ -30,33 +30,53 @@ let GetAllTable = (tableid) => {
 		}
 	});
 };
-let CreateNewCar = (data, user) => {
+let CreateNewCustomer = (data) => {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let cars = Array.isArray(data) ? data : [data];
-			for (let i = 0; i < cars.length; i++) {
-				let car = cars[i];
-				let check = await CheckLicensePlate(car.license_plate);
-				if (check === true) {
-					resolve({
-						errCode: 1,
-						errMessage: "Your License Plate has exist",
-					});
-				} else {
-					let User = await getAllUser(user.id);
-					await db.Car.create({
-						//(value my sql): (value name-html)
-						name: car.name,
-						license_plate: car.license_plate,
-						type: car.type,
-						id_user: User.id,
-					});
-				}
-			}
-			resolve({
-				errCode: 0,
-				message: "Create success",
+			let check = await db.Customer.findOne({
+				where: { phone: data.phone },
 			});
+			if (check) {
+				resolve({
+					errCode: 1,
+					errMessage: "The phone number is already registered",
+				});
+			} else {
+				await db.Customer.create({
+					name: data.name,
+					phone: data.phone,
+				});
+				let customer = { name: data.name, phone: data.phone, points: 0 };
+				resolve({
+					errCode: 0,
+					errMessage: "Create new customer successfully",
+					customer: customer,
+				});
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let CheckCustomer = (phone) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Customer.findOne({
+				where: { phone: phone },
+			});
+			if (check) {
+				resolve({
+					errCode: 0,
+					errMessage: "Customer exists",
+					customer: check,
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Customer does not exist",
+				});
+			}
 		} catch (e) {
 			reject(e);
 		}
@@ -798,7 +818,8 @@ let DepositMoney = (data) => {
 };
 module.exports = {
 	GetAllTable,
-	CreateNewCar,
+	CreateNewCustomer,
+	CheckCustomer,
 	GetAllCar,
 	DeleteCar,
 	DeleteTicket,

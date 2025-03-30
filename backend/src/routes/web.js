@@ -22,7 +22,11 @@ let initWebRoutes = (app) => {
 	// router.get("/api/getTypeTicket", apiController.HandleGetTypeTicket);
 	// router.put("/api/edit-user", userController.HandleEditUser);
 	router.post("/api/create-new-user", userController.HandleCreateNewUser);
-	// router.post("/api/create-new-car", apiController.HandleCreateNewCar);
+	router.post(
+		"/api/create-new-customer",
+		apiController.HandleCreateNewCustomer
+	);
+	router.post("/api/check-customer", apiController.HandleCheckCustomer);
 	// router.post("/api/create-ticket", apiController.HandleCreatePayment);
 	// router.post("/api/cancel-deposit", apiController.CancelDepositMoney);
 	// router.post("/api/deposit-money", apiController.HandleDepositMoney);
