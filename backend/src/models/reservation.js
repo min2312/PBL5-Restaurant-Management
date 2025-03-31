@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
 		{
 			sequelize,
 			modelName: "Reservation",
+			hooks: {
+				beforeCreate: (reservation) => {
+					reservation.reservationTime = reservation.createdAt;
+				},
+			},
 		}
 	);
 	return Reservation;
