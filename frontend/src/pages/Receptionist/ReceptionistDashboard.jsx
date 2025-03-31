@@ -17,6 +17,7 @@ const ReceptionistDashboard = () => {
 	const [customerInfo, setCustomerInfo] = useState(null);
 	const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
 	const [table, setTable] = useState("");
+	const [selectedTable, setSelectedTable] = useState(null);
 	const [socket, setSocket] = useState(null);
 	const [modalIsOpen, setModalIsOpen] = useState(false);
 	const history = useHistory();
@@ -54,7 +55,18 @@ const ReceptionistDashboard = () => {
 		});
 
 		newSocket.on("connect", () => {
-			console.log("WebSocket connected:", newSocket.id);
+			console.log("Receptionist connected to WebSocket:", newSocket.id);
+		});
+
+		newSocket.on("tableUpdated", (data) => {
+			console.log("Table updated:", data);
+			setTable((prevTables) =>
+				prevTables.map((table) =>
+					table.tableNumber === data.table.tableNumber
+						? { ...table, status: data.status }
+						: table
+				)
+			);
 		});
 
 		newSocket.on("connect_error", (err) => {
@@ -102,6 +114,7 @@ const ReceptionistDashboard = () => {
 	};
 
 	const handleTableSelection = (table) => {
+		setSelectedTable(table);
 		setModalIsOpen(true);
 	};
 
@@ -115,8 +128,12 @@ const ReceptionistDashboard = () => {
 			toast.error("Socket connection not established");
 			return;
 		}
-
-		socket.emit("updateTable", table.tableNumber);
+		let data = {
+			table: selectedTable,
+			status: "Reserved",
+			customer: customerInfo || null,
+		};
+		socket.emit("updateTable", data);
 		setModalIsOpen(false);
 		handleCloseInfo();
 		toast.success("Proceed to Order Success");
@@ -140,15 +157,36 @@ const ReceptionistDashboard = () => {
 									key={index}
 								>
 									<div className="room-item text-center">
-										<i className="bi bi-table" style={{ fontSize: "2rem" }}></i>{" "}
-										<h4>Table {item.tableNumber}</h4>
-										<button
-											type="button"
-											onClick={() => handleTableSelection(item.tableNumber)}
-											className="btn btn-primary mt-2"
+										<i
+											className={`bi bi-table ${
+												item.status === "AVAILABLE" ? "" : "text-danger"
+											}`}
+											style={{ fontSize: "2rem" }}
+										></i>{" "}
+										<h4
+											className={`${
+												item.status === "AVAILABLE" ? "" : "text-danger"
+											}`}
 										>
-											Select
-										</button>
+											Table {item.tableNumber}
+										</h4>
+										{item.status === "AVAILABLE" ? (
+											<button
+												type="button"
+												onClick={() => handleTableSelection(item)}
+												className="btn btn-primary mt-2"
+											>
+												Select
+											</button>
+										) : (
+											<button
+												type="button"
+												className="btn btn-secondary mt-2"
+												disabled
+											>
+												Occupied
+											</button>
+										)}
 									</div>
 								</div>
 							))}
