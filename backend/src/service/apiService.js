@@ -42,11 +42,16 @@ let CreateNewCustomer = (data) => {
 					errMessage: "The phone number is already registered",
 				});
 			} else {
-				await db.Customer.create({
+				let newCustomer = await db.Customer.create({
 					name: data.name,
 					phone: data.phone,
 				});
-				let customer = { name: data.name, phone: data.phone, points: 0 };
+				let customer = {
+					id: newCustomer.id,
+					name: data.name,
+					phone: data.phone,
+					points: 0,
+				};
 				resolve({
 					errCode: 0,
 					errMessage: "Create new customer successfully",
