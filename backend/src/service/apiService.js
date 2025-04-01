@@ -88,6 +88,58 @@ let CheckCustomer = (phone) => {
 	});
 };
 
+let ReservationTable = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let existingReservation = await db.Reservation.findOne({
+				where: { tableId: data.table.id },
+			});
+			let tableUpdate = await db.Table.update(
+				{ status: data.status },
+				{ where: { tableNumber: data.table.tableNumber } }
+			);
+			if (existingReservation) {
+				if (existingReservation.customerId) {
+					resolve({
+						errCode: 0,
+						errMessage: "Reservation already exists",
+						reservation: existingReservation,
+					});
+					return;
+				}
+
+				await existingReservation.update({
+					customerId: data.customer?.id || null,
+					reservationTime: new Date(),
+				});
+
+				resolve({
+					errCode: 0,
+					errMessage: "Customer information updated",
+					reservation: existingReservation,
+				});
+				return;
+			}
+
+			let newReservation = await db.Reservation.create({
+				customerId: data.customer?.id || null,
+				tableId: data.table.id,
+			});
+
+			resolve({
+				errCode: 0,
+				errMessage: "Reservation created successfully",
+				reservation: newReservation,
+			});
+		} catch (error) {
+			reject({
+				errCode: 1,
+				errMessage: "Error creating/updating reservation",
+			});
+		}
+	});
+};
+
 let GetAllCar = (Idcar) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -825,6 +877,7 @@ module.exports = {
 	GetAllTable,
 	CreateNewCustomer,
 	CheckCustomer,
+	ReservationTable,
 	GetAllCar,
 	DeleteCar,
 	DeleteTicket,

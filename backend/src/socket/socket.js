@@ -19,7 +19,10 @@ const initSocket = (server) => {
 		console.log("Client connected:", socket.id, "User:", socket.user);
 
 		socket.on("updateTable", async (data) => {
-			await handleUpdateTable(data);
+			await handleUpdateTable(data, socket.user);
+		});
+		socket.on("disconnect", (reason) => {
+			console.log(`Client disconnected: ${socket.id}, Reason: ${reason}`);
 		});
 	});
 };
