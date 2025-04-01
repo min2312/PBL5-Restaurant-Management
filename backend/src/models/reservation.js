@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
 			modelName: "Reservation",
 			hooks: {
 				beforeCreate: (reservation) => {
-					reservation.reservationTime = reservation.createdAt;
+					reservation.reservationTime = reservation.updatedAt;
 				},
 			},
 		}
