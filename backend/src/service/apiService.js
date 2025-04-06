@@ -30,6 +30,47 @@ let GetAllTable = (tableid) => {
 		}
 	});
 };
+
+let GetAllOrder = (orderid) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let orders = "";
+			if (orderid === "ALL") {
+				orders = await db.Order.findAll({
+					include: [
+						{
+							model: db.User,
+							attributes: ["id", "fullName", "email", "role"],
+						},
+						{
+							model: db.Table,
+							attributes: ["id", "tableNumber"],
+						},
+					],
+				});
+			}
+			if (orderid && orderid !== "ALL") {
+				orders = await db.Order.findAll({
+					where: { id: orderid },
+					include: [
+						{
+							model: db.User,
+							attributes: ["id", "fullName", "email", "role"],
+						},
+						{
+							model: db.Table,
+							attributes: ["id", "tableNumber"],
+						},
+					],
+				});
+			}
+			resolve(orders);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 let CreateNewCustomer = (data) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -88,16 +129,61 @@ let CheckCustomer = (phone) => {
 	});
 };
 
+let GetAllReservation = (reservationId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let reservations = "";
+			if (reservationId === "ALL") {
+				reservations = await db.Reservation.findAll({
+					include: [
+						{
+							model: db.Customer,
+							attributes: ["id", "name", "phone", "points"],
+						},
+						{
+							model: db.Table,
+							attributes: ["id", "tableNumber"],
+						},
+					],
+				});
+			}
+			if (reservationId && reservationId !== "ALL") {
+				reservations = await db.Reservation.findOne({
+					where: { id: reservationId },
+					include: [
+						{
+							model: db.Customer,
+							attributes: ["id", "name", "phone", "points"],
+						},
+						{
+							model: db.Table,
+							attributes: ["id", "tableNumber"],
+						},
+					],
+				});
+			}
+			resolve(reservations);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 let ReservationTable = (data) => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let existingReservation = await db.Reservation.findOne({
-				where: { tableId: data.table.id },
+				where: {
+					tableId: data.table.id,
+					status: "PENDING",
+				},
 			});
-			let tableUpdate = await db.Table.update(
+
+			await db.Table.update(
 				{ status: data.status },
 				{ where: { tableNumber: data.table.tableNumber } }
 			);
+
 			if (existingReservation) {
 				if (existingReservation.customerId) {
 					resolve({
@@ -135,6 +221,53 @@ let ReservationTable = (data) => {
 			reject({
 				errCode: 1,
 				errMessage: "Error creating/updating reservation",
+			});
+		}
+	});
+};
+
+let CreateOrder = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Order.findOne({
+				where: { tableId: data.table.id, status: "PENDING" },
+			});
+			if (check) {
+				resolve({
+					errCode: 1,
+					errMessage: "The table already has an order",
+				});
+			} else {
+				let newOrder = await db.Order.create({
+					tableId: data.table.id,
+					customerId: data.customer?.id || null,
+					userId: data.user.id,
+				});
+
+				let findnewOrder = await db.Order.findOne({
+					where: { id: newOrder.id },
+					include: [
+						{
+							model: db.User,
+							attributes: ["id", "fullName", "email", "role"],
+						},
+						{
+							model: db.Table,
+							attributes: ["id", "tableNumber"],
+						},
+					],
+				});
+
+				resolve({
+					errCode: 0,
+					errMessage: "Create new order successfully",
+					order: findnewOrder,
+				});
+			}
+		} catch (e) {
+			reject({
+				errCode: 1,
+				errMessage: "Error creating reservation",
 			});
 		}
 	});
@@ -875,9 +1008,12 @@ let DepositMoney = (data) => {
 };
 module.exports = {
 	GetAllTable,
+	GetAllOrder,
+	GetAllReservation,
 	CreateNewCustomer,
 	CheckCustomer,
 	ReservationTable,
+	CreateOrder,
 	GetAllCar,
 	DeleteCar,
 	DeleteTicket,

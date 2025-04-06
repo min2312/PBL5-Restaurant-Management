@@ -13,6 +13,8 @@ let initWebRoutes = (app) => {
 	router.post("/api/logout", userController.HandleLogOut);
 	router.post("/api/logoutAdmin", adminController.HandleLogOut);
 	router.get("/api/get-all-table", apiController.HandleGetAllTable);
+	router.get("/api/get-all-order", apiController.HandleGetAllOrder);
+	router.get("/api/get-all-reservation", apiController.HandleGetAllReservation);
 	// router.get("/api/get-all-slot", apiController.HandleGetAllSlot);
 	// router.get("/api/get-info-car", userController.HandleGetInfoCar);
 	// router.get("/api/getAllCar", apiController.HandleGetAllCar);
@@ -22,6 +24,7 @@ let initWebRoutes = (app) => {
 	// router.get("/api/getTypeTicket", apiController.HandleGetTypeTicket);
 	// router.put("/api/edit-user", userController.HandleEditUser);
 	router.post("/api/create-new-user", userController.HandleCreateNewUser);
+	router.post("/api/create-new-order", apiController.HandleCreateNewOrder);
 	router.post(
 		"/api/create-new-customer",
 		apiController.HandleCreateNewCustomer

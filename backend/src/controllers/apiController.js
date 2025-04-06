@@ -16,6 +16,40 @@ let HandleGetAllTable = async (req, res) => {
 	});
 };
 
+let HandleGetAllOrder = async (req, res) => {
+	let id = req.query.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+			order: [],
+		});
+	}
+	let order = await apiService.GetAllOrder(id);
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		order: order,
+	});
+};
+
+let HandleGetAllReservation = async (req, res) => {
+	let id = req.query.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+			order: [],
+		});
+	}
+	let reservation = await apiService.GetAllReservation(id);
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		Reservation: reservation,
+	});
+};
+
 let HandleCreateNewCustomer = async (req, res) => {
 	let customer = req.body;
 	if (!customer) {
@@ -48,8 +82,27 @@ let HandleCheckCustomer = async (req, res) => {
 		customer: customer.customer,
 	});
 };
+
+let HandleCreateNewOrder = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.CreateOrder(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		order: result.order,
+	});
+};
 module.exports = {
 	HandleGetAllTable,
 	HandleCreateNewCustomer,
 	HandleCheckCustomer,
+	HandleCreateNewOrder,
+	HandleGetAllOrder,
+	HandleGetAllReservation,
 };
