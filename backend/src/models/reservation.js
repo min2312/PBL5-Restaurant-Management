@@ -12,6 +12,7 @@ module.exports = (sequelize, DataTypes) => {
 			customerId: DataTypes.INTEGER,
 			tableId: DataTypes.INTEGER,
 			reservationTime: DataTypes.DATE,
+			status: DataTypes.ENUM("Pending", "Confirmed", "Cancelled"),
 		},
 		{
 			sequelize,

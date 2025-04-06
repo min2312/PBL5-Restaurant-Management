@@ -19,6 +19,11 @@ module.exports = {
 				references: { model: "Tables", key: "id" },
 				onDelete: "SET NULL",
 			},
+			userId: {
+				type: Sequelize.INTEGER,
+				references: { model: "Users", key: "id" },
+				onDelete: "SET NULL",
+			},
 			status: {
 				type: Sequelize.STRING,
 				defaultValue: "PENDING",
