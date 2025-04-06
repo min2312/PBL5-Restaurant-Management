@@ -4,6 +4,9 @@ import { Modal, Button } from "react-bootstrap";
 import {
 	CheckCustomer,
 	CreateNewCustomer,
+	CreateNewOrder,
+	GetAllOrder,
+	GetAllReservation,
 	GetAllTable,
 } from "../../services/apiService";
 import { toast } from "react-toastify";
@@ -20,8 +23,10 @@ const Waiter = () => {
 	const [selectedTable, setSelectedTable] = useState(null);
 	const [modalIsOpen, setModalIsOpen] = useState(false);
 	const [socket, setSocket] = useState(null);
+	const [staff, setStaff] = useState({});
 	const { user } = useContext(UserContext);
 	const history = useHistory();
+	const [customerInfoByTable, setCustomerInfoByTable] = useState({});
 
 	const GetData = async () => {
 		try {
@@ -38,8 +43,62 @@ const Waiter = () => {
 		}
 	};
 
+	const GetOrder = async () => {
+		try {
+			let id_order = "ALL";
+			let respone = await GetAllOrder(id_order);
+			if (respone && respone.errCode === 0) {
+				if (respone.order && respone.order.length > 0) {
+					respone.order.forEach((order) => {
+						let tableNumber = order.Table?.tableNumber;
+						let user = order.User;
+						if (tableNumber && user && order.status === "PENDING") {
+							setStaff((prev) => ({
+								...prev,
+								[tableNumber]: user,
+							}));
+						}
+					});
+				}
+			} else {
+				toast.error("Get Data Failed");
+			}
+		} catch (e) {
+			toast.error("Get Data Failed");
+			console.log("err:", e);
+		}
+	};
+
+	const GetReservation = async () => {
+		try {
+			let id_reservation = "ALL";
+			let respone = await GetAllReservation(id_reservation);
+			if (respone && respone.errCode === 0) {
+				let allReservations = respone.Reservation;
+
+				allReservations.forEach((reservation) => {
+					let tableNumber = reservation.Table?.tableNumber;
+					let customer = reservation.Customer;
+					if (tableNumber && customer) {
+						setCustomerInfoByTable((prev) => ({
+							...prev,
+							[tableNumber]: customer,
+						}));
+					}
+				});
+			} else {
+				toast.error("Get Data Failed");
+			}
+		} catch (e) {
+			toast.error("Get Data Failed");
+			console.log("err:", e);
+		}
+	};
+
 	useEffect(() => {
 		GetData();
+		GetOrder();
+		GetReservation();
 	}, []);
 
 	useEffect(() => {
@@ -60,7 +119,6 @@ const Waiter = () => {
 
 		newSocket.on("tableUpdated", (data) => {
 			console.log("Table updated:", data);
-			setCustomerInfo(data.customer);
 			setTables((prevTables) =>
 				prevTables.map((table) =>
 					table.tableNumber === data.table.tableNumber
@@ -68,6 +126,29 @@ const Waiter = () => {
 						: table
 				)
 			);
+			setCustomerInfoByTable((prev) => ({
+				...prev,
+				[data.table.tableNumber]: data.customer,
+			}));
+		});
+
+		newSocket.on("orderUpdated", (respone) => {
+			console.log("Update Order:", respone);
+			let orders = Array.isArray(respone.order)
+				? respone.order
+				: [respone.order];
+			if (orders && orders.length > 0) {
+				orders.forEach((order) => {
+					let tableNumber = order.Table?.tableNumber;
+					let user = order.User;
+					if (tableNumber && user && order.status === "PENDING") {
+						setStaff((prev) => ({
+							...prev,
+							[tableNumber]: user,
+						}));
+					}
+				});
+			}
 		});
 
 		newSocket.on("connect_error", (err) => {
@@ -120,7 +201,27 @@ const Waiter = () => {
 	};
 
 	const handleTableSelection = (table) => {
+		let check = false;
+		Object.entries(staff).forEach(([tableNumber, staffMember]) => {
+			if (staffMember.id === user.account.id) {
+				if (tableNumber === table.tableNumber.toString()) {
+					history.push("/order-menu", {
+						table: table,
+						customer: customerInfoByTable[table.tableNumber] || null,
+					});
+					return;
+				} else {
+					check = true;
+					return;
+				}
+			}
+		});
+		if (check) {
+			toast.error("You are already serving another table.");
+			return;
+		}
 		setSelectedTable(table);
+		setCustomerInfo(customerInfoByTable[table.tableNumber] || null);
 		setModalIsOpen(true);
 	};
 
@@ -129,17 +230,24 @@ const Waiter = () => {
 			toast.error("Socket connection not established");
 			return;
 		}
-		let data = {
-			table: selectedTable,
-			status: "Occupied",
-			customer: customerInfo || null,
-		};
-		socket.emit("updateTable", data);
 		if (customerInfo) {
-			history.push("/order-menu", {
+			let data = {
 				table: selectedTable,
-				customer: customerInfo,
-			});
+				status: "Occupied",
+				customer: customerInfo || null,
+				user: user.account,
+			};
+			socket.emit("updateTable", data);
+			let respone = await CreateNewOrder(data);
+			if (respone && respone.errCode === 0) {
+				socket.emit("updateOrder", respone);
+				history.push("/order-menu", {
+					table: selectedTable,
+					customer: customerInfo,
+				});
+			} else {
+				toast.error(respone.errMessage);
+			}
 		} else {
 			toast.error("Please select a customer");
 		}
@@ -165,7 +273,29 @@ const Waiter = () => {
 										></i>{" "}
 										<div className="ri-text">
 											<h4>Table {table.tableNumber}</h4>
-											{table.status === "AVAILABLE" ? (
+											{table.status === "Occupied" &&
+											staff[table.tableNumber] ? (
+												<h6>Staff: {staff[table.tableNumber].fullName}</h6>
+											) : null}
+											{table.status === "Occupied" ? (
+												staff[table.tableNumber]?.id === user.account.id ? (
+													<button
+														type="button"
+														onClick={() => handleTableSelection(table)}
+														className="btn btn-warning"
+													>
+														Continue Serving
+													</button>
+												) : (
+													<button
+														type="button"
+														className="btn btn-secondary"
+														disabled
+													>
+														Already Served
+													</button>
+												)
+											) : table.status === "AVAILABLE" ? (
 												<button
 													type="button"
 													className="btn btn-secondary"
@@ -192,7 +322,11 @@ const Waiter = () => {
 			<CustomerModal
 				show={modalIsOpen}
 				close={handleCloseInfo}
-				onHide={() => setModalIsOpen(false)}
+				onHide={() => {
+					setModalIsOpen(false);
+					setPhoneNumber("");
+					setNewCustomer({ name: "", phone: "" });
+				}}
 				phoneNumber={phoneNumber}
 				setPhoneNumber={setPhoneNumber}
 				handleCheckCustomer={handleCheckCustomer}

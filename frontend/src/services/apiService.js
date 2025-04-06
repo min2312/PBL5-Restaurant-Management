@@ -11,6 +11,28 @@ const GetAllTable = (InputId) => {
 		});
 };
 
+const GetAllOrder = (InputId) => {
+	return axios
+		.get(`/api/get-all-order?id=${InputId}`)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const GetAllReservation = (InputId) => {
+	return axios
+		.get(`/api/get-all-reservation?id=${InputId}`)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
 const CreateNewCustomer = (customer) => {
 	return axios
 		.post("/api/create-new-customer", customer)
@@ -32,4 +54,22 @@ const CheckCustomer = (phoneNumber) => {
 			console.log(err);
 		});
 };
-export { GetAllTable, CreateNewCustomer, CheckCustomer };
+
+const CreateNewOrder = (data) => {
+	return axios
+		.post("/api/create-new-order", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+export {
+	GetAllTable,
+	CreateNewCustomer,
+	CheckCustomer,
+	CreateNewOrder,
+	GetAllOrder,
+	GetAllReservation,
+};

@@ -61,7 +61,7 @@ const ReceptionistDashboard = () => {
 		newSocket.on("tableUpdated", (data) => {
 			console.log("Table updated:", data);
 			setTable((prevTables) =>
-				prevTables.map((table) =>
+				(prevTables ?? []).map((table) =>
 					table.tableNumber === data.table.tableNumber
 						? { ...table, status: data.status }
 						: table
@@ -130,7 +130,7 @@ const ReceptionistDashboard = () => {
 		}
 		let data = {
 			table: selectedTable,
-			status: "Reserved",
+			status: "Pending",
 			customer: customerInfo || null,
 		};
 		socket.emit("updateTable", data);
@@ -184,7 +184,7 @@ const ReceptionistDashboard = () => {
 												className="btn btn-secondary mt-2"
 												disabled
 											>
-												Occupied
+												{item.status}
 											</button>
 										)}
 									</div>
