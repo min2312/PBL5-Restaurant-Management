@@ -4,6 +4,7 @@ import adminController from "../controllers/adminController";
 import { checkUserJWT, CreateJWT } from "../middleware/JWT_Action";
 import passport from "passport";
 import apiController from "../controllers/apiController";
+import uploadCloud from "../middleware/Cloudinary_Multer";
 let router = express.Router();
 
 let initWebRoutes = (app) => {
@@ -25,6 +26,11 @@ let initWebRoutes = (app) => {
 	// router.put("/api/edit-user", userController.HandleEditUser);
 	router.post("/api/create-new-user", userController.HandleCreateNewUser);
 	router.post("/api/create-new-order", apiController.HandleCreateNewOrder);
+	router.post(
+		"/api/create-new-dish",
+		uploadCloud.single("image"),
+		apiController.HandleCreateDish
+	);
 	router.post(
 		"/api/create-new-customer",
 		apiController.HandleCreateNewCustomer

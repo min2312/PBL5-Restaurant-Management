@@ -1,4 +1,6 @@
 import apiService from "../service/apiService";
+const cloudinary = require("cloudinary").v2;
+
 let HandleGetAllTable = async (req, res) => {
 	let id = req.query.id;
 	if (!id) {
@@ -98,6 +100,47 @@ let HandleCreateNewOrder = async (req, res) => {
 		order: result.order,
 	});
 };
+
+let HandleCreateDish = async (req, res) => {
+	let data = req.body;
+	let fileImage = req.file;
+	let urlImage = data.url_image;
+
+	if (!data || Object.keys(data).length === 0) {
+		if (fileImage) {
+			await cloudinary.uploader.destroy(fileImage.filename);
+		}
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+
+	try {
+		if (urlImage) {
+			const uploadResponse = await cloudinary.uploader.upload(urlImage, {
+				folder: "Restaurant",
+			});
+			data.image = uploadResponse.secure_url;
+		}
+
+		let result = await apiService.CreateDish(data, fileImage);
+		return res.status(200).json({
+			errCode: result.errCode,
+			errMessage: result.errMessage,
+			dish: result.dish,
+		});
+	} catch (error) {
+		if (fileImage) {
+			await cloudinary.uploader.destroy(fileImage.filename);
+		}
+		return res.status(500).json({
+			errCode: 1,
+			errMessage: "Error creating dish",
+		});
+	}
+};
+
 module.exports = {
 	HandleGetAllTable,
 	HandleCreateNewCustomer,
@@ -105,4 +148,5 @@ module.exports = {
 	HandleCreateNewOrder,
 	HandleGetAllOrder,
 	HandleGetAllReservation,
+	HandleCreateDish,
 };

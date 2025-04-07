@@ -10,6 +10,7 @@ const CryptoJS = require("crypto-js");
 const moment = require("moment");
 const qs = require("qs");
 const axios = require("axios");
+const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
 
 let GetAllTable = (tableid) => {
@@ -268,6 +269,46 @@ let CreateOrder = (data) => {
 			reject({
 				errCode: 1,
 				errMessage: "Error creating reservation",
+			});
+		}
+	});
+};
+
+let CreateDish = (data, fileImage) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Dish.findOne({
+				where: { name: data.name },
+			});
+			if (check) {
+				if (fileImage) {
+					await cloudinary.uploader.destroy(fileImage.filename);
+				}
+				resolve({
+					errCode: 1,
+					errMessage: "The dish already exists",
+				});
+			} else {
+				let imagePath = data.image || (fileImage ? fileImage.path : null);
+				let newDish = await db.Dish.create({
+					name: data.name,
+					price: data.price,
+					Category: data.category,
+					pic_link: imagePath,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Create new dish successfully",
+					dish: newDish,
+				});
+			}
+		} catch (e) {
+			if (fileImage) {
+				await cloudinary.uploader.destroy(fileImage.filename);
+			}
+			reject({
+				errCode: 1,
+				errMessage: "Error creating dish",
 			});
 		}
 	});
@@ -1014,6 +1055,7 @@ module.exports = {
 	CheckCustomer,
 	ReservationTable,
 	CreateOrder,
+	CreateDish,
 	GetAllCar,
 	DeleteCar,
 	DeleteTicket,
