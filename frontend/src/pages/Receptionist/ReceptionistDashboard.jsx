@@ -144,55 +144,142 @@ const ReceptionistDashboard = () => {
 	};
 
 	return (
-		<div className="container">
-			<h1 className="my-4">Receptionist Dashboard</h1>
-			<div className="rooms-section spad">
+		<div className="bg-light min-vh-100">
+			{/* Header */}
+			<header
+				className="py-4 mb-5"
+				style={{
+					background: "linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)",
+					boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+				}}
+			>
 				<div className="container">
-					<div className="row">
-						{table &&
-							table.length > 0 &&
-							table.map((item, index) => (
-								<div
-									className={`col-lg-4 col-md-6 mb-3 d-flex align-items-stretch`}
-									key={index}
-								>
-									<div className="room-item text-center">
-										<i
-											className={`bi bi-table ${
-												item.status === "AVAILABLE" ? "" : "text-danger"
+					<div className="row align-items-center">
+						<div className="col-md-8">
+							<h1 className="text-white mb-1 fw-bold">
+								Receptionist Dashboard
+							</h1>
+							<p className="text-white-50 mb-0">
+								Manage table assignments and customer check-ins
+							</p>
+						</div>
+						<div className="col-md-4 text-md-end">
+							<div className="d-inline-block bg-white bg-opacity-10 rounded p-3">
+								<p className="m-0 text-white">
+									<i className="bi bi-person-badge me-2"></i>Receptionist:{" "}
+									{user?.account?.fullName || "Staff"}
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</header>
+
+			<div className="container mb-5">
+				<div
+					className="card border-0 shadow-sm"
+					style={{ borderRadius: "16px", overflow: "hidden" }}
+				>
+					<div className="card-header border-0 bg-white p-4">
+						<h4 className="mb-0 fw-bold">Floor Map</h4>
+					</div>
+					<div className="card-body p-4">
+						<div className="row g-4">
+							{table && table.length > 0 ? (
+								table.map((item, index) => (
+									<div className="col-lg-3 col-md-4 col-sm-6" key={index}>
+										<div
+											className={`card h-100 border-0 position-relative ${
+												item.status === "AVAILABLE" ? "bg-white" : "bg-light"
 											}`}
-											style={{ fontSize: "2rem" }}
-										></i>{" "}
-										<h4
-											className={`${
-												item.status === "AVAILABLE" ? "" : "text-danger"
-											}`}
+											style={{
+												borderRadius: "16px",
+												overflow: "hidden",
+												boxShadow:
+													item.status === "AVAILABLE"
+														? "0 8px 16px rgba(37, 117, 252, 0.15)"
+														: "0 4px 12px rgba(0, 0, 0, 0.08)",
+												transition: "all 0.3s ease",
+											}}
 										>
-											Table {item.tableNumber}
-										</h4>
-										{item.status === "AVAILABLE" ? (
-											<button
-												type="button"
-												onClick={() => handleTableSelection(item)}
-												className="btn btn-primary mt-2"
-											>
-												Select
-											</button>
-										) : (
-											<button
-												type="button"
-												className="btn btn-secondary mt-2"
-												disabled
-											>
-												{item.status}
-											</button>
-										)}
+											<div className="position-absolute top-0 end-0 m-2">
+												<span
+													className={`badge ${
+														item.status === "AVAILABLE"
+															? "bg-success"
+															: "bg-danger"
+													}`}
+												>
+													{item.status}
+												</span>
+											</div>
+											<div className="card-body p-4 text-center">
+												<div className="mb-3">
+													<i
+														className={`bi bi-table ${
+															item.status === "AVAILABLE"
+																? "text-primary"
+																: "text-secondary"
+														}`}
+														style={{ fontSize: "2.5rem" }}
+													></i>
+												</div>
+												<h5 className="fw-bold mb-3">
+													Table {item.tableNumber}
+												</h5>
+												{item.status === "AVAILABLE" ? (
+													<button
+														type="button"
+														onClick={() => handleTableSelection(item)}
+														className="btn btn-primary w-100 py-2"
+														style={{ borderRadius: "12px" }}
+													>
+														<i className="bi bi-person-plus me-2"></i>
+														Assign Table
+													</button>
+												) : (
+													<button
+														type="button"
+														className="btn btn-secondary w-100 py-2"
+														style={{ borderRadius: "12px" }}
+														disabled
+													>
+														<i className="bi bi-lock me-2"></i>
+														{item.status}
+													</button>
+												)}
+											</div>
+										</div>
 									</div>
+								))
+							) : (
+								<div className="col-12 text-center py-5">
+									<div className="mb-3">
+										<i
+											className="bi bi-exclamation-circle text-muted"
+											style={{ fontSize: "3rem" }}
+										></i>
+									</div>
+									<h5 className="text-muted">No tables found</h5>
+									<p className="text-muted small">
+										Please check your connection or try refreshing the page
+									</p>
 								</div>
-							))}
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
+
+			{/* Toast Notification - You can add this to your component if needed */}
+			<div
+				className="position-fixed bottom-0 end-0 p-3"
+				style={{ zIndex: 5 }}
+				id="toast-container"
+			>
+				{/* Toast notifications will be added here by react-toastify */}
+			</div>
+
 			<CustomerModal
 				show={modalIsOpen}
 				close={handleCloseInfo}

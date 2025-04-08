@@ -13,7 +13,6 @@ import { toast } from "react-toastify";
 import CustomerModal from "../../Component/Customer/CustomerModal";
 import { UserContext } from "../../Context/UserProvider";
 import { io } from "socket.io-client";
-// import "./OrderMenu.css";
 
 const Waiter = () => {
 	const [phoneNumber, setPhoneNumber] = useState("");
@@ -27,6 +26,18 @@ const Waiter = () => {
 	const { user } = useContext(UserContext);
 	const history = useHistory();
 	const [customerInfoByTable, setCustomerInfoByTable] = useState({});
+	const [notification, setNotification] = useState(null);
+
+	const toast2 = {
+		success: (message) => {
+			setNotification({ type: "success", message });
+			setTimeout(() => setNotification(null), 3000);
+		},
+		error: (message) => {
+			setNotification({ type: "error", message });
+			setTimeout(() => setNotification(null), 3000);
+		},
+	};
 
 	const GetData = async () => {
 		try {
@@ -168,13 +179,13 @@ const Waiter = () => {
 
 	const handleCheckCustomer = async () => {
 		if (!phoneNumber) {
-			toast.error("Please enter phone number");
+			toast2.error("Please enter phone number");
 		} else {
 			let checkinfo = await CheckCustomer(phoneNumber);
 			if (checkinfo && checkinfo.errCode === 0) {
 				setCustomerInfo(checkinfo.customer);
 			} else {
-				toast.error(checkinfo.errMessage);
+				toast2.error(checkinfo.errMessage);
 			}
 		}
 	};
@@ -186,12 +197,12 @@ const Waiter = () => {
 				setCustomerInfo(response.customer);
 				setPhoneNumber(newCustomer.phone);
 				setNewCustomer({ name: "", phone: "" });
-				toast.success("Create New Customer Success");
+				toast2.success("Create New Customer Success");
 			} else {
-				toast.error(response.errMessage);
+				toast2.error(response.errMessage);
 			}
 		} catch (error) {
-			toast.error("Create New Customer Failed");
+			toast2.error("Create New Customer Failed");
 		}
 	};
 
@@ -217,7 +228,7 @@ const Waiter = () => {
 			}
 		});
 		if (check) {
-			toast.error("You are already serving another table.");
+			toast2.error("You are already serving another table.");
 			return;
 		}
 		setSelectedTable(table);
@@ -227,7 +238,7 @@ const Waiter = () => {
 
 	const handleProceedToOrder = async () => {
 		if (!socket) {
-			toast.error("Socket connection not established");
+			toast2.error("Socket connection not established");
 			return;
 		}
 		if (customerInfo) {
@@ -246,79 +257,314 @@ const Waiter = () => {
 					customer: customerInfo,
 				});
 			} else {
-				toast.error(respone.errMessage);
+				toast2.error(respone.errMessage);
 			}
 		} else {
-			toast.error("Please select a customer");
+			toast2.error("Please select a customer");
+		}
+	};
+
+	// Table status color map
+	const getStatusColor = (status) => {
+		switch (status) {
+			case "AVAILABLE":
+				return { bg: "bg-success bg-opacity-10", text: "text-success" };
+			case "Pending":
+				return { bg: "bg-warning bg-opacity-10", text: "text-warning" };
+			case "Occupied":
+				return { bg: "bg-primary bg-opacity-10", text: "text-primary" };
+			default:
+				return { bg: "bg-secondary bg-opacity-10", text: "text-secondary" };
 		}
 	};
 
 	return (
-		<div className="container">
-			<h1 className="my-4">Waiter DashBoard</h1>
-			<div className="rooms-section spad">
+		<div className="bg-light min-vh-100">
+			{/* Toast notification */}
+			{notification && (
+				<div
+					className={`toast ${
+						notification.type === "success" ? "bg-success" : "bg-danger"
+					} text-white position-fixed top-0 end-0 m-4 show`}
+					style={{ zIndex: 1050, opacity: 1 }}
+				>
+					<div className="toast-body p-3">{notification.message}</div>
+				</div>
+			)}
+
+			{/* Header */}
+			<header
+				className="py-4 mb-5"
+				style={{
+					background: "linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)",
+					boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+				}}
+			>
 				<div className="container">
-					<div className="row">
-						{tables &&
-							tables.length > 0 &&
-							tables.map((table, index) => (
-								<div
-									className={`col-lg-4 col-md-6 mb-4 d-flex align-items-stretch`}
-									key={index}
-								>
-									<div className="room-item text-center">
-										<i
-											className="bi bi-table text-secondary"
-											style={{ fontSize: "2rem" }}
-										></i>{" "}
-										<div className="ri-text">
-											<h4>Table {table.tableNumber}</h4>
-											{table.status === "Occupied" &&
-											staff[table.tableNumber] ? (
-												<h6>Staff: {staff[table.tableNumber].fullName}</h6>
-											) : null}
-											{table.status === "Occupied" ? (
-												staff[table.tableNumber]?.id === user.account.id ? (
-													<button
-														type="button"
-														onClick={() => handleTableSelection(table)}
-														className="btn btn-warning"
-													>
-														Continue Serving
+					<div className="row align-items-center">
+						<div className="col-md-8">
+							<h1 className="text-white mb-1 fw-bold">Waiter Dashboard</h1>
+							<p className="text-white-50 mb-0">
+								Manage orders and serve customers efficiently
+							</p>
+						</div>
+						<div className="col-md-4 text-md-end">
+							<div className="d-inline-block bg-white bg-opacity-10 rounded p-3">
+								<p className="m-0 text-white">
+									<i className="bi bi-person me-2"></i>Waiter:{" "}
+									{user?.account?.fullName || "Staff"}
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</header>
+
+			<div className="container mb-5">
+				<div className="row mb-4">
+					<div className="col-12">
+						<div
+							className="card border-0 shadow-sm"
+							style={{ borderRadius: "16px" }}
+						>
+							<div className="card-body p-4">
+								<h5 className="card-title fw-bold mb-3">
+									<i className="bi bi-search me-2 text-primary"></i>Find
+									Customer
+								</h5>
+								<div className="row g-3">
+									<div className="col-md-8">
+										<div className="input-group">
+											<span className="input-group-text bg-light border-0">
+												<i className="bi bi-telephone text-primary"></i>
+											</span>
+											<input
+												type="text"
+												className="form-control bg-light border-0"
+												placeholder="Enter customer phone number"
+												value={phoneNumber}
+												onChange={(e) => setPhoneNumber(e.target.value)}
+											/>
+										</div>
+									</div>
+									<div className="col-md-4">
+										<button
+											className="btn btn-primary w-100"
+											onClick={handleCheckCustomer}
+											style={{ borderRadius: "8px" }}
+										>
+											<i className="bi bi-search me-2"></i>Find Customer
+										</button>
+									</div>
+								</div>
+
+								{customerInfo && (
+									<div className="mt-4 p-3 border rounded-3 bg-light">
+										<div className="d-flex justify-content-between align-items-center mb-2">
+											<h6 className="fw-bold mb-0">Customer Information</h6>
+											<button
+												className="btn btn-sm btn-outline-secondary"
+												onClick={handleCloseInfo}
+											>
+												<i className="bi bi-x"></i>
+											</button>
+										</div>
+										<div className="row g-3">
+											<div className="col-md-6">
+												<div className="d-flex align-items-center">
+													<div className="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+														<i className="bi bi-person text-primary"></i>
+													</div>
+													<div>
+														<small className="text-muted d-block">Name</small>
+														<span className="fw-medium">
+															{customerInfo.name}
+														</span>
+													</div>
+												</div>
+											</div>
+											<div className="col-md-6">
+												<div className="d-flex align-items-center">
+													<div className="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+														<i className="bi bi-telephone text-primary"></i>
+													</div>
+													<div>
+														<small className="text-muted d-block">Phone</small>
+														<span className="fw-medium">
+															{customerInfo.phone}
+														</span>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<h4 className="fw-bold mb-4">
+					<i className="bi bi-grid me-2 text-primary"></i>Table Status
+				</h4>
+
+				<div className="row g-4">
+					{tables && tables.length > 0 ? (
+						tables.map((table, index) => {
+							const statusClass = getStatusColor(table.status);
+							const isServedByMe =
+								staff[table.tableNumber]?.id === user?.account?.id;
+							const isOccupied = table.status === "Occupied";
+							const customerForTable = customerInfoByTable[table.tableNumber];
+
+							return (
+								<div className="col-lg-4 col-md-6" key={index}>
+									<div
+										className="card border-0 h-100 shadow-sm"
+										style={{
+											borderRadius: "16px",
+											transition: "transform 0.3s ease, box-shadow 0.3s ease",
+											cursor:
+												isOccupied && !isServedByMe ? "not-allowed" : "pointer",
+										}}
+										onMouseOver={(e) => {
+											if (!(isOccupied && !isServedByMe)) {
+												e.currentTarget.style.transform = "translateY(-5px)";
+												e.currentTarget.style.boxShadow =
+													"0 10px 20px rgba(0,0,0,0.08)";
+											}
+										}}
+										onMouseOut={(e) => {
+											e.currentTarget.style.transform = "translateY(0)";
+											e.currentTarget.style.boxShadow = "";
+										}}
+										onClick={() => {
+											if (
+												!(isOccupied && !isServedByMe) &&
+												table.status !== "AVAILABLE"
+											) {
+												handleTableSelection(table);
+											}
+										}}
+									>
+										<div className="card-body p-4">
+											<div className="d-flex justify-content-between mb-3">
+												<h5 className="fw-bold mb-0">
+													Table {table.tableNumber}
+												</h5>
+												<span
+													className={`badge ${statusClass.bg} ${statusClass.text} px-3 py-2`}
+												>
+													{table.status}
+												</span>
+											</div>
+
+											<div className="d-flex justify-content-center my-4">
+												<div
+													className={`table-icon rounded-circle d-flex align-items-center justify-content-center ${statusClass.bg}`}
+													style={{ width: "80px", height: "80px" }}
+												>
+													<i
+														className="bi bi-table text-primary"
+														style={{ fontSize: "2rem" }}
+													></i>
+												</div>
+											</div>
+
+											{isOccupied && staff[table.tableNumber] && (
+												<div className="mb-3 p-3 bg-light rounded-3">
+													<div className="d-flex align-items-center">
+														<div className="me-3">
+															<i
+																className="bi bi-person-circle text-primary"
+																style={{ fontSize: "1.5rem" }}
+															></i>
+														</div>
+														<div>
+															<small className="text-muted">Served by</small>
+															<p className="mb-0 fw-medium">
+																{staff[table.tableNumber].fullName}
+															</p>
+														</div>
+													</div>
+												</div>
+											)}
+
+											{customerForTable && (
+												<div className="mb-3 p-3 bg-light rounded-3">
+													<div className="d-flex align-items-center">
+														<div className="me-3">
+															<i
+																className="bi bi-person text-primary"
+																style={{ fontSize: "1.5rem" }}
+															></i>
+														</div>
+														<div>
+															<small className="text-muted">Customer</small>
+															<p className="mb-0 fw-medium">
+																{customerForTable.name}
+															</p>
+															<small className="text-muted">
+																{customerForTable.phone}
+															</small>
+														</div>
+													</div>
+												</div>
+											)}
+
+											<div className="d-grid mt-3">
+												{isOccupied ? (
+													isServedByMe ? (
+														<button
+															className="btn btn-warning"
+															onClick={() => handleTableSelection(table)}
+														>
+															<i className="bi bi-arrow-right-circle me-2"></i>
+															Continue Serving
+														</button>
+													) : (
+														<button className="btn btn-secondary" disabled>
+															<i className="bi bi-lock me-2"></i>
+															Already Served
+														</button>
+													)
+												) : table.status === "AVAILABLE" ? (
+													<button className="btn btn-secondary" disabled>
+														<i className="bi bi-x-circle me-2"></i>
+														Not Available
 													</button>
 												) : (
 													<button
-														type="button"
-														className="btn btn-secondary"
-														disabled
+														className="btn btn-primary"
+														onClick={() => handleTableSelection(table)}
 													>
-														Already Served
+														<i className="bi bi-check-circle me-2"></i>
+														Select Table
 													</button>
-												)
-											) : table.status === "AVAILABLE" ? (
-												<button
-													type="button"
-													className="btn btn-secondary"
-													disabled
-												>
-													Not Available
-												</button>
-											) : (
-												<button
-													type="button"
-													onClick={() => handleTableSelection(table)}
-													className="btn btn-primary"
-												>
-													Select
-												</button>
-											)}
+												)}
+											</div>
 										</div>
 									</div>
 								</div>
-							))}
-					</div>
+							);
+						})
+					) : (
+						<div className="col-12 text-center py-5">
+							<div className="mb-3">
+								<i
+									className="bi bi-table text-muted"
+									style={{ fontSize: "3rem" }}
+								></i>
+							</div>
+							<h5 className="text-muted mb-2">No Tables Available</h5>
+							<p className="text-muted mb-0">
+								Please check back later or contact management
+							</p>
+						</div>
+					)}
 				</div>
 			</div>
+
 			<CustomerModal
 				show={modalIsOpen}
 				close={handleCloseInfo}
@@ -326,6 +572,7 @@ const Waiter = () => {
 					setModalIsOpen(false);
 					setPhoneNumber("");
 					setNewCustomer({ name: "", phone: "" });
+					setCustomerInfo(null);
 				}}
 				phoneNumber={phoneNumber}
 				setPhoneNumber={setPhoneNumber}

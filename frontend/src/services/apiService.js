@@ -65,8 +65,21 @@ const CreateNewOrder = (data) => {
 			console.log(err);
 		});
 };
+
+const GetAllDish = (InputId) => {
+	return axios
+		.get(`/api/getAllDish?id=${InputId}`)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
 export {
 	GetAllTable,
+	GetAllDish,
 	CreateNewCustomer,
 	CheckCustomer,
 	CreateNewOrder,
