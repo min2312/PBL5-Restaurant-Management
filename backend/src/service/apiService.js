@@ -314,6 +314,28 @@ let CreateDish = (data, fileImage) => {
 	});
 };
 
+let GetAllDish = (dishId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let dishes = "";
+			if (dishId === "ALL") {
+				dishes = await db.Dish.findAll({
+					attributes: ["id", "name", "price", "Category", "pic_link"],
+				});
+			}
+			if (dishId && dishId !== "ALL") {
+				dishes = await db.Dish.findAll({
+					where: { id: dishId },
+					attributes: ["id", "name", "price", "Category", "pic_link"],
+				});
+			}
+			resolve(dishes);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 let GetAllCar = (Idcar) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -1051,6 +1073,7 @@ module.exports = {
 	GetAllTable,
 	GetAllOrder,
 	GetAllReservation,
+	GetAllDish,
 	CreateNewCustomer,
 	CheckCustomer,
 	ReservationTable,

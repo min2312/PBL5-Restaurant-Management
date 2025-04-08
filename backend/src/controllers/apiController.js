@@ -141,6 +141,23 @@ let HandleCreateDish = async (req, res) => {
 	}
 };
 
+let HandleGetAllDish = async (req, res) => {
+	let id = req.query.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+			dish: [],
+		});
+	}
+	let dish = await apiService.GetAllDish(id);
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		dish: dish,
+	});
+};
+
 module.exports = {
 	HandleGetAllTable,
 	HandleCreateNewCustomer,
@@ -149,4 +166,5 @@ module.exports = {
 	HandleGetAllOrder,
 	HandleGetAllReservation,
 	HandleCreateDish,
+	HandleGetAllDish,
 };

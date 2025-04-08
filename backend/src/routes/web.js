@@ -18,7 +18,7 @@ let initWebRoutes = (app) => {
 	router.get("/api/get-all-reservation", apiController.HandleGetAllReservation);
 	// router.get("/api/get-all-slot", apiController.HandleGetAllSlot);
 	// router.get("/api/get-info-car", userController.HandleGetInfoCar);
-	// router.get("/api/getAllCar", apiController.HandleGetAllCar);
+	router.get("/api/getAllDish", apiController.HandleGetAllDish);
 	// router.get("/api/getAllCar_Ticket", apiController.HandleGetAllCar_Ticket);
 	router.get("/api/account", userController.getUserAccount);
 	router.get("/api/accountAdmin", adminController.getAdminAccount);
