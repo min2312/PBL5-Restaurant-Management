@@ -23,6 +23,7 @@ const Waiter = () => {
 	const [modalIsOpen, setModalIsOpen] = useState(false);
 	const [socket, setSocket] = useState(null);
 	const [staff, setStaff] = useState({});
+	const [order, setOrder] = useState({});
 	const { user } = useContext(UserContext);
 	const history = useHistory();
 	const [customerInfoByTable, setCustomerInfoByTable] = useState({});
@@ -64,6 +65,7 @@ const Waiter = () => {
 						let tableNumber = order.Table?.tableNumber;
 						let user = order.User;
 						if (tableNumber && user && order.status === "PENDING") {
+							setOrder(order);
 							setStaff((prev) => ({
 								...prev,
 								[tableNumber]: user,
@@ -219,6 +221,7 @@ const Waiter = () => {
 					history.push("/order-menu", {
 						table: table,
 						customer: customerInfoByTable[table.tableNumber] || null,
+						order: order,
 					});
 					return;
 				} else {
@@ -252,9 +255,11 @@ const Waiter = () => {
 			let respone = await CreateNewOrder(data);
 			if (respone && respone.errCode === 0) {
 				socket.emit("updateOrder", respone);
+				setOrder(respone.order);
 				history.push("/order-menu", {
 					table: selectedTable,
 					customer: customerInfo,
+					order: respone.order,
 				});
 			} else {
 				toast2.error(respone.errMessage);
