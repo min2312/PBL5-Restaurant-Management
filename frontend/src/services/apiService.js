@@ -66,9 +66,42 @@ const CreateNewOrder = (data) => {
 		});
 };
 
+const CreateNewOrderDetail = (data) => {
+	return axios
+		.post("/api/create-new-orderDetail", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
 const GetAllDish = (InputId) => {
 	return axios
 		.get(`/api/getAllDish?id=${InputId}`)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const GetAllOrderDetail = (InputId) => {
+	return axios
+		.get(`/api/get-all-orderDetail?id=${InputId}`)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const UpdateOrderDetail = (data) => {
+	return axios
+		.post("/api/update-order-status", data)
 		.then((response) => {
 			return response;
 		})
@@ -83,6 +116,9 @@ export {
 	CreateNewCustomer,
 	CheckCustomer,
 	CreateNewOrder,
+	CreateNewOrderDetail,
 	GetAllOrder,
 	GetAllReservation,
+	GetAllOrderDetail,
+	UpdateOrderDetail,
 };

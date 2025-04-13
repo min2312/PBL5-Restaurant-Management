@@ -9,6 +9,7 @@ import PrivateRoutes from "./PrivateRoutes";
 import LoginAdmin from "../pages/Login/LoginAdmin";
 import Waiter from "../pages/Waiter/Waiter";
 import OrderMenu from "../pages/OrderMenu/OrderMenu";
+import Chef from "../pages/Chef/Chef";
 
 const ClientRoute = () => {
 	return (
@@ -22,6 +23,7 @@ const ClientRoute = () => {
 					role="receptionist"
 				/>
 				<PrivateRoutesRole path="/waiter" component={Waiter} role="waiter" />
+				<PrivateRoutesRole path="/chef" component={Chef} role="chef" />
 				<PrivateRoutesRole
 					path="/order-menu"
 					component={OrderMenu}
