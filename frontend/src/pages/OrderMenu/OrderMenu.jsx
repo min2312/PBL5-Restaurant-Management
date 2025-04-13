@@ -2,14 +2,17 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import { UserContext } from "../../Context/UserProvider";
 import { toast } from "react-toastify";
 import { useLocation } from "react-router-dom/cjs/react-router-dom.min";
-import { GetAllDish } from "../../services/apiService";
-import { use } from "react";
+import {
+	GetAllDish,
+	CreateNewOrderDetail,
+	GetAllOrderDetail,
+	UpdateOrderDetail,
+} from "../../services/apiService";
 
 const OrderMenu = () => {
 	const location = useLocation();
-	const { table, customer } = location.state || {};
+	const { table, customer, order } = location.state || {};
 	const { user } = useContext(UserContext);
-
 	// Declare hooks unconditionally
 	const [menuItems, setMenuItems] = useState([]);
 	const [orderItems, setOrderItems] = useState({});
@@ -26,7 +29,6 @@ const OrderMenu = () => {
 			let dishID = "ALL";
 			let response = await GetAllDish(dishID);
 			if (response && response.errCode === 0) {
-				console.log("Menu items fetched successfully:", response.dish);
 				setMenuItems(response.dish);
 			} else {
 				toast.error("Failed to fetch menu items");
@@ -40,15 +42,6 @@ const OrderMenu = () => {
 	useEffect(() => {
 		GetDish();
 	}, []);
-	// Mock data
-	// const table = { tableNumber: "T01" };
-	// const customer = {
-	// 	name: "Nguyen Van A",
-	// 	phone: "0987654321",
-	// 	points: 500, // Thêm điểm tích lũy cho khách hàng
-	// };
-	// const user = { account: { fullName: "Staff Member" } };
-
 	// Refs for Category sections
 	const categoryRefs = useRef({});
 
@@ -146,47 +139,88 @@ const OrderMenu = () => {
 	};
 
 	// Update handleSubmitOrder to show total
-	const handleSubmitOrder = () => {
+	const handleSubmitOrder = async () => {
 		if (Object.keys(orderItems).length === 0) {
 			toast.error("Vui lòng chọn ít nhất một món để đặt hàng");
 			return;
 		}
 
-		const newOrder = {
-			items: { ...orderItems },
-			status: {},
-			timestamp: new Date().toISOString(),
-			total: calculateSubtotal(),
-		};
-		Object.keys(orderItems).forEach((itemId) => {
-			newOrder.status[itemId] = false;
-		});
+		try {
+			const response = await CreateNewOrderDetail({
+				orderId: order.id,
+				dishList: Object.values(orderItems),
+			});
 
-		setCompletedOrders((prev) => [...prev, newOrder]);
-		setOrderItems({});
-		setIsOrdered(true);
-		toast.success(`Đặt hàng thành công!`);
+			if (response && response.errCode === 0) {
+				const fetchedOrderItems = response.orderDetail.reduce((acc, order) => {
+					const key = `${order.Dish.id}-${order.orderSession}`;
+					acc[key] = {
+						...order.Dish,
+						quantity: order.quantity,
+						status: order.status,
+						orderSession: order.orderSession,
+					};
+					return acc;
+				}, {});
+				const newOrder = {
+					items: fetchedOrderItems,
+					// status: response.orderDetail.reduce((acc, order) => {
+					// 	const key = `${order.Dish.id}-${order.orderSession}`;
+					// 	acc[key] = order.status || false; // Set status based on API data
+					// 	return acc;
+					// }, {}),
+					timestamp: new Date().toISOString(),
+					total: calculateSubtotal(),
+				};
+				// for (const item of Object.values(orderItems)) {
+				// 	newOrder.status[item.id] = false;
+				// }
+				setCompletedOrders((prev) => [...prev, newOrder]);
+				toast.success("Đặt món thành công!");
+				setOrderItems({});
+				setIsOrdered(true);
+			} else {
+				toast.error(response.errMessage || "Thêm món thất bại!");
+			}
+		} catch (error) {
+			console.error("Error creating order details:", error);
+			toast.error("Đã xảy ra lỗi khi thêm món!");
+		}
 	};
+	const handleItemReady = async (orderId, itemId) => {
+		const dishId = completedOrders[orderId].items[itemId].id;
+		const orderSession = completedOrders[orderId].items[itemId].orderSession;
 
-	const handleItemReady = (orderId, itemId) => {
-		setCompletedOrders((prev) =>
-			prev.map((order, index) => {
-				if (index === orderId) {
-					return {
-						...order,
-						status: {
-							...order.status,
-							[itemId]: !order.status[itemId],
+		try {
+			const response = await UpdateOrderDetail({ dishId, orderSession });
+			if (response && response.errCode === 0) {
+				setCompletedOrders((prev) => {
+					const updated = [...prev];
+					const targetOrder = { ...updated[orderId] };
+					const updatedItems = {
+						...targetOrder.items,
+						[itemId]: {
+							...targetOrder.items[itemId],
+							status: !targetOrder.items[itemId].status,
 						},
 					};
-				}
-				return order;
-			})
-		);
+					updated[orderId] = {
+						...targetOrder,
+						items: updatedItems,
+					};
+					return updated;
+				});
+			} else {
+				toast.error("Không thể cập nhật trạng thái món");
+			}
+		} catch (err) {
+			console.error("Update error:", err);
+			toast.error("Lỗi khi gửi yêu cầu cập nhật");
+		}
 	};
 
 	const isAllItemsReady = (order) => {
-		return Object.values(order.status).every((status) => status === true);
+		return Object.values(order.items).every((item) => item.status === true);
 	};
 
 	const handlePayment = () => {
@@ -234,11 +268,64 @@ const OrderMenu = () => {
 		}
 	}, [pointsToUse, customer?.points]);
 
+	const GetData = async () => {
+		try {
+			let response = await GetAllOrderDetail(order.id);
+			if (response && response.errCode === 0) {
+				const fetchedOrderItems = response.orderDetail.reduce((acc, order) => {
+					const key = `${order.Dish.id}-${order.orderSession}`;
+					acc[key] = {
+						...order.Dish,
+						quantity: order.quantity,
+						status: order.status,
+						orderSession: order.orderSession,
+					};
+					return acc;
+				}, {});
+				const newOrder = {
+					items: fetchedOrderItems,
+					// status: response.orderDetail.reduce((acc, order) => {
+					// 	const key = `${order.Dish.id}-${order.orderSession}`;
+					// 	acc[key] = order.status || false; // Set status based on API data
+					// 	return acc;
+					// }, {}),
+					timestamp: new Date().toISOString(),
+					total: Object.values(fetchedOrderItems).reduce(
+						(sum, item) => sum + item.price * item.quantity,
+						0
+					),
+				};
+				// Check for duplicate orders
+				setCompletedOrders((prev) => {
+					const isDuplicate = prev.some(
+						(existingOrder) =>
+							JSON.stringify(existingOrder.items) ===
+							JSON.stringify(newOrder.items)
+					);
+					if (isDuplicate) {
+						return prev; // Skip adding duplicate order
+					}
+					return [...prev, newOrder];
+				});
+			} else {
+				toast.error("Failed to fetch order details");
+			}
+		} catch (error) {
+			console.error("Error fetching order details:", error);
+			toast.error("Error fetching order details");
+		}
+	};
+
+	useEffect(() => {
+		if (order && order.id) {
+			GetData();
+		}
+	}, []);
+
 	// Conditional rendering inside the return statement
 	if (!table || !customer) {
 		return <div>No table or customer information provided</div>;
 	}
-
 	return (
 		<div className="bg-light min-vh-100">
 			{/* Header */}
@@ -524,8 +611,8 @@ const OrderMenu = () => {
 														</tr>
 													</thead>
 													<tbody>
-														{Object.values(order.items).map((item) => (
-															<tr key={item.id}>
+														{Object.values(order.items).map((item, index) => (
+															<tr key={index}>
 																<td>{item.name}</td>
 																<td className="text-center">{item.quantity}</td>
 																<td className="text-end position-relative">
@@ -537,9 +624,12 @@ const OrderMenu = () => {
 																		<input
 																			className="form-check-input border border-primary"
 																			type="checkbox"
-																			checked={order.status[item.id] || false}
+																			checked={item.status || false}
 																			onChange={() =>
-																				handleItemReady(orderIndex, item.id)
+																				handleItemReady(
+																					orderIndex,
+																					`${item.id}-${item.orderSession}`
+																				)
 																			}
 																			style={{ width: "20px", height: "20px" }}
 																		/>
