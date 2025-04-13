@@ -72,6 +72,45 @@ let GetAllOrder = (orderid) => {
 	});
 };
 
+let GetAllOrderDetail = (orderId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let orderDetails = "";
+			if (orderId === "ALL") {
+				orderDetails = await db.OrderDetail.findAll({
+					include: [
+						{
+							model: db.Order,
+							attributes: ["id", "tableId"],
+						},
+						{
+							model: db.Dish,
+							attributes: ["id", "name", "price", "Category", "pic_link"],
+						},
+					],
+				});
+			} else if (orderId && orderId !== "ALL") {
+				orderDetails = await db.OrderDetail.findAll({
+					where: { orderId: orderId },
+					include: [
+						{
+							model: db.Order,
+							attributes: ["id", "tableId"],
+						},
+						{
+							model: db.Dish,
+							attributes: ["id", "name", "price", "Category", "pic_link"],
+						},
+					],
+				});
+			}
+			resolve(orderDetails);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 let CreateNewCustomer = (data) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -274,6 +313,83 @@ let CreateOrder = (data) => {
 	});
 };
 
+let CreateOrderDetail = (orderId, dishList) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let latestSession = await db.OrderDetail.max("orderSession", {
+				where: { orderId: orderId },
+			});
+
+			let newSession = latestSession ? latestSession + 1 : 1;
+
+			let dataToCreate = dishList.map((dish) => ({
+				orderId: orderId,
+				dishId: dish.id,
+				quantity: dish.quantity,
+				orderSession: newSession,
+			}));
+
+			let createdItems = await db.OrderDetail.bulkCreate(dataToCreate);
+
+			let findNewOrderDetail = await db.OrderDetail.findAll({
+				where: { orderSession: newSession },
+				include: [
+					{
+						model: db.Order,
+						attributes: ["id", "tableId"],
+					},
+					{
+						model: db.Dish,
+						attributes: ["id", "name", "price", "Category", "pic_link"],
+					},
+				],
+			});
+			resolve({
+				errCode: 0,
+				errMessage: "Create new order detail successfully",
+				orderDetail: findNewOrderDetail,
+			});
+		} catch (e) {
+			console.log(e);
+			reject({
+				errCode: 1,
+				errMessage: "Error creating/updating order detail",
+			});
+		}
+	});
+};
+
+let updateOrderDetail = (dishId, orderSession) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let orderDetail = await db.OrderDetail.findOne({
+				where: { dishId: dishId, orderSession: orderSession },
+			});
+			if (orderDetail) {
+				await orderDetail.update({
+					status: !orderDetail.status,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Update order detail successfully",
+					orderDetail: orderDetail,
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Order detail not found",
+				});
+			}
+		} catch (e) {
+			console.log(e);
+			reject({
+				errCode: 1,
+				errMessage: "Error creating/updating order detail",
+			});
+		}
+	});
+};
+
 let CreateDish = (data, fileImage) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -330,519 +446,6 @@ let GetAllDish = (dishId) => {
 				});
 			}
 			resolve(dishes);
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-
-let GetAllCar = (Idcar) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let iduser = Array.isArray(Idcar) ? Idcar : Idcar.split(",");
-			let allCar = [];
-			for (let i = 0; i < iduser.length; i++) {
-				let data = await db.Car.findAll({
-					attributes: [
-						"id_car",
-						"name",
-						"license_plate",
-						"type",
-						"inTime",
-						"outTime",
-						"id_user",
-						"id_reservation",
-						"createdAt",
-						"updatedAt",
-					],
-					where: { id_user: iduser[i] },
-					include: [
-						{
-							model: db.Reservation,
-							attributes: ["type", "price"],
-						},
-					],
-				});
-				let data_noReservation = await db.Car.findAll({
-					where: { id_user: iduser[i], id_reservation: null },
-				});
-				for (let car of data) {
-					let payment = await db.Payment.findAll({
-						where: { id_car: car.id_car },
-						attributes: ["paymentDate"],
-					});
-					if (payment.length > 0) {
-						allCar.push({
-							...car.toJSON(),
-							paymentDate: payment[0].paymentDate,
-						});
-					}
-				}
-				allCar = allCar.concat(data_noReservation);
-			}
-			resolve(allCar);
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-let GetCar_Ticket = (id_user) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let iduser = Array.isArray(id_user) ? id_user : id_user.split(",");
-			let allCar = [];
-			for (let i = 0; i < iduser.length; i++) {
-				let data = await db.Car.findAll({
-					attributes: [
-						"id_car",
-						"name",
-						"license_plate",
-						"type",
-						"inTime",
-						"outTime",
-						"id_user",
-						"id_reservation",
-						"createdAt",
-						"updatedAt",
-					],
-					where: {
-						id_user: iduser[i],
-						id_reservation: { [db.Sequelize.Op.ne]: null },
-					},
-					include: [
-						{
-							model: db.Reservation,
-							attributes: ["type", "price"],
-						},
-					],
-				});
-				for (let car of data) {
-					let payment = await db.Payment.findAll({
-						where: { id_car: car.id_car },
-						attributes: ["paymentDate"],
-					});
-					if (payment.length > 0) {
-						allCar.push({
-							...car.toJSON(),
-							paymentDate: payment[0].paymentDate,
-						});
-					}
-				}
-			}
-			resolve(allCar);
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-let DeleteTicket = (id_car) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let carId = typeof id_car === "object" ? Object.keys(id_car)[0] : id_car;
-			let payment = await db.Payment.findOne({
-				where: { id_car: carId },
-			});
-			if (payment) {
-				await db.Payment.destroy({
-					where: { id_car: carId },
-				});
-				await db.Car.update(
-					{ id_reservation: null, inTime: null, outTime: null },
-					{ where: { id_car: carId } }
-				);
-				resolve({
-					errCode: 0,
-					message: `The Ticket is deleted`,
-				});
-			} else {
-				resolve({
-					errCode: 2,
-					errMessage: `The Ticket isn't exist`,
-				});
-			}
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-let CancelDeposit = (data) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let user = await db.User.findOne({
-				where: { id: data.id_user },
-			});
-			let money = parseFloat(user.price) - parseFloat(data.amount);
-			if (user.price) {
-				await db.User.update({ price: money }, { where: { id: data.id_user } });
-			}
-			resolve({
-				errCode: 0,
-				errMessage: `Cancel Deposit Money`,
-			});
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-let DeleteCar = (User_id) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let car = await db.Car.findOne({
-				where: { id_user: User_id },
-			});
-			if (car) {
-				await db.Car.destroy({
-					where: { id_user: User_id },
-				});
-				resolve({
-					errCode: 0,
-					message: `The User is deleted`,
-				});
-			} else {
-				resolve({
-					errCode: 2,
-					errMessage: `The car isn't exist`,
-				});
-			}
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-let GetTicketType = (typeTicket) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let ticket = await db.Reservation.findOne({
-				where: { type: typeTicket },
-			});
-			resolve(ticket);
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-const formatDateForDatabase = (dateString) => {
-	const [day, month, year] = dateString.split("/");
-	return `${year}-${month}-${day}`;
-};
-let CreatePayment = (data) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let date = formatDateForDatabase(data.paymentDate);
-			let currentDate = new Date();
-			let car_account = await db.Car.findOne({
-				where: { license_plate: data.licenseplate },
-			});
-			let reservation = await db.Reservation.findOne({
-				where: { type: data.type },
-			});
-			if (!car_account) {
-				return resolve({
-					errCode: 1,
-					errMessage: "Car not found.",
-				});
-			}
-			let payment = await db.Payment.findOne({
-				where: { id_car: car_account.id_car },
-			});
-			if (payment) {
-				let paymentDate = new Date(payment.paymentDate);
-				if (paymentDate >= currentDate) {
-					return resolve({
-						errCode: 2,
-						errMessage: "Payment is still valid, cannot create a new ticket.",
-					});
-				} else {
-					await db.Payment.update(
-						{
-							amount: data.price,
-							paymentDate: date,
-							id_car: car_account.id_car,
-						},
-						{ where: { id_payment: payment.id_payment } }
-					);
-					resolve({
-						errCode: 0,
-						errMessage: "Ticket updated successfully.",
-					});
-				}
-			} else {
-				if (reservation) {
-					await db.Payment.create({
-						amount: data.price,
-						paymentDate: date,
-						id_car: car_account.id_car,
-					});
-					await db.Car.update(
-						{ id_reservation: reservation.id_reservation },
-						{ where: { id_car: car_account.id_car } }
-					);
-					resolve({
-						errCode: 0,
-						errMessage: "Ticket created successfully.",
-					});
-				} else {
-					resolve({
-						errCode: 1,
-						errMessage: "Missing required reservation information!",
-					});
-				}
-			}
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-let CreateTimeCar = (LicensePlate) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let check = await CheckLicensePlate(LicensePlate);
-			let checkslot = await db.ParkingSpot.findAll({
-				where: { status: "INACTIVE" },
-			});
-			if (check) {
-				let car = await db.Car.findOne({
-					where: { license_plate: LicensePlate },
-				});
-
-				if (!car.id_reservation) {
-					resolve({
-						errCode: -1,
-						errMessage: "Not Have Ticket",
-					});
-				} else {
-					const recentCheck = new Date();
-					recentCheck.setHours(recentCheck.getHours() + 7);
-					let carTicket = await GetCar_Ticket(`${car.id_user}`);
-					if (carTicket.length > 0) {
-						let expiredCar = carTicket.find(
-							(ticket) => ticket.license_plate === car.license_plate
-						);
-						if (expiredCar.paymentDate < recentCheck) {
-							resolve({
-								errCode: 2,
-								errMessage: "Expired Ticket",
-							});
-						} else {
-							if (!car.inTime) {
-								if (checkslot.length === 0) {
-									resolve({
-										errCode: 3,
-										errMessage: "FULL SLOT. WAIT",
-									});
-								} else {
-									await db.Car.update(
-										{
-											inTime: recentCheck,
-										},
-										{ where: { id_car: car.id_car } }
-									);
-									resolve({
-										errCode: 0,
-										errMessage: car.license_plate,
-									});
-								}
-							} else if (!car.outTime) {
-								await db.Car.update(
-									{
-										outTime: recentCheck,
-									},
-									{ where: { id_car: car.id_car } }
-								);
-								resolve({
-									errCode: 0,
-									errMessage: `Good Bye-${car.license_plate}`,
-								});
-							} else {
-								if (car.inTime > car.outTime) {
-									await db.Car.update(
-										{
-											outTime: recentCheck,
-										},
-										{ where: { id_car: car.id_car } }
-									);
-									resolve({
-										errCode: 0,
-										errMessage: `Good Bye-${car.license_plate}`,
-									});
-								} else {
-									if (checkslot.length === 0) {
-										resolve({
-											errCode: 3,
-											errMessage: "FULL SLOT. WAIT",
-										});
-									} else {
-										await db.Car.update(
-											{
-												inTime: recentCheck,
-											},
-											{ where: { id_car: car.id_car } }
-										);
-										resolve({
-											errCode: 0,
-											errMessage: car.license_plate,
-										});
-									}
-								}
-							}
-						}
-					}
-				}
-			} else {
-				resolve({
-					errCode: 1,
-					errMessage: "Car Not Exist",
-				});
-			}
-		} catch (error) {
-			reject(error);
-		}
-	});
-};
-let CheckTimeCar = (LicensePlate) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let check = await db.Car.findOne({
-				where: { license_plate: LicensePlate },
-			});
-			let checkslot = await db.ParkingSpot.findAll({
-				where: { status: "INACTIVE" },
-			});
-			if (!check) {
-				resolve({
-					errCode: 1,
-					errMessage: "Car Not Exist",
-				});
-				return;
-			}
-			const recentCheck = new Date();
-			recentCheck.setHours(recentCheck.getHours() + 7);
-			if (!check.inTime) {
-				if (checkslot.length === 0) {
-					resolve({
-						errCode: 3,
-						errMessage: "FULL SLOT. WAIT",
-					});
-				} else {
-					await db.Car.update(
-						{ inTime: recentCheck },
-						{ where: { id_car: check.id_car } }
-					);
-					resolve({
-						errCode: 0,
-						errMessage: check.license_plate,
-					});
-				}
-			} else if (!check.outTime) {
-				// Tính thời gian đỗ xe
-				let inTime = new Date(check.inTime);
-				let duration = (recentCheck - inTime) / (1000 * 60 * 60); // Thời gian đỗ xe tính bằng giờ
-				// Tính phí đỗ xe
-				let price = 5000;
-				if (duration > 1) {
-					price += Math.ceil(duration - 1) * 5000;
-				}
-				let user = await db.User.findOne({ where: { id: check.id_user } });
-				if (user && user.price >= price) {
-					let money = parseFloat(user.price) - parseFloat(price);
-					await db.Car.update(
-						{ outTime: recentCheck },
-						{ where: { id_car: check.id_car } }
-					);
-					await db.User.update(
-						{ price: money },
-						{ where: { id: check.id_user } }
-					);
-					resolve({
-						errCode: 0,
-						errMessage: `Good Bye-${check.license_plate}\nFee: ${price} VND`,
-					});
-				} else {
-					resolve({
-						errCode: 4,
-						errMessage: "Not Enough Money",
-					});
-				}
-			} else {
-				if (check.inTime > check.outTime) {
-					// Tính thời gian đỗ xe
-					let inTime = new Date(check.inTime);
-					let duration = (recentCheck - inTime) / (1000 * 60 * 60); // Thời gian đỗ xe tính bằng giờ
-					// Tính phí đỗ xe
-					let price = 5000;
-					if (duration > 1) {
-						price += Math.ceil(duration - 1) * 5000;
-					}
-					let user = await db.User.findOne({ where: { id: check.id_user } });
-					if (user && user.price >= price) {
-						let money = parseFloat(user.price) - parseFloat(price);
-						await db.Car.update(
-							{ outTime: recentCheck },
-							{ where: { id_car: check.id_car } }
-						);
-						await db.User.update(
-							{ price: money },
-							{ where: { id: check.id_user } }
-						);
-						resolve({
-							errCode: 0,
-							errMessage: `Good Bye-${check.license_plate}\nFee: ${price} VND`,
-						});
-					} else {
-						resolve({
-							errCode: 4,
-							errMessage: `Not Enough Money\nFee: ${price} VND`,
-						});
-					}
-				} else {
-					if (checkslot.length === 0) {
-						resolve({
-							errCode: 3,
-							errMessage: "FULL SLOT. WAIT",
-						});
-					} else {
-						await db.Car.update(
-							{
-								inTime: recentCheck,
-							},
-							{ where: { id_car: check.id_car } }
-						);
-						resolve({
-							errCode: 0,
-							errMessage: check.license_plate,
-						});
-					}
-				}
-			}
-		} catch (error) {
-			reject(error);
-		}
-	});
-};
-
-let CheckLicensePlate = (LicensePlate) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let data = await db.Car.findOne({
-				attributes: [
-					"id_car",
-					"name",
-					"license_plate",
-					"type",
-					"inTime",
-					"outTime",
-					"id_user",
-					"id_reservation",
-					"createdAt",
-					"updatedAt",
-				],
-				where: { license_plate: LicensePlate },
-			});
-			if (data) {
-				resolve(true);
-			} else {
-				resolve(false);
-			}
 		} catch (e) {
 			reject(e);
 		}
@@ -1002,97 +605,22 @@ const checkZaloPayOrderStatus = async (app_trans_id) => {
 		throw error;
 	}
 };
-let getSlotCar = () => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let slots = await db.ParkingSpot.findAll();
-			resolve(slots);
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
-let updateSlot = (data) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let match = data.match(/([A-Z]+)(\d+)/);
-			if (match) {
-				let status = match[1]; // Chữ
-				let number = match[2]; // Số
-				let slots = await db.ParkingSpot.update(
-					{
-						status: status,
-					},
-					{ where: { id_parkingspot: number }, silent: false }
-				);
-				resolve({
-					errCode: 0,
-					errMessage: "OK",
-				});
-			}
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
 
-let DepositMoney = (data) => {
-	return new Promise(async (resolve, reject) => {
-		try {
-			let user = await db.User.findOne({
-				where: { id: data.id_user },
-			});
-			let money = parseFloat(user.price) + parseFloat(data.price);
-			if (user.price) {
-				await db.User.update(
-					{
-						price: money,
-					},
-					{
-						where: { id: data.id_user },
-					}
-				);
-			} else {
-				await db.User.update(
-					{ price: data.price },
-					{
-						where: { id: data.id_user },
-					}
-				);
-			}
-			resolve({
-				errCode: 0,
-				errMessage: "Deposit Money successfully.",
-			});
-		} catch (e) {
-			reject(e);
-		}
-	});
-};
 module.exports = {
 	GetAllTable,
 	GetAllOrder,
+	GetAllOrderDetail,
 	GetAllReservation,
 	GetAllDish,
 	CreateNewCustomer,
 	CheckCustomer,
 	ReservationTable,
 	CreateOrder,
+	CreateOrderDetail,
+	updateOrderDetail,
 	CreateDish,
-	GetAllCar,
-	DeleteCar,
-	DeleteTicket,
-	GetTicketType,
-	CreatePayment,
-	GetCar_Ticket,
-	CreateTimeCar,
 	PaymentMoMo,
 	createZaloPayOrder,
 	checkZaloPayOrderStatus,
 	callbackZaloPayOrder,
-	getSlotCar,
-	updateSlot,
-	DepositMoney,
-	CancelDeposit,
-	CheckTimeCar,
 };

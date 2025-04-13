@@ -12,6 +12,12 @@ module.exports = (sequelize, DataTypes) => {
 			orderId: DataTypes.INTEGER,
 			dishId: DataTypes.INTEGER,
 			quantity: DataTypes.INTEGER,
+			status: {
+				type: DataTypes.BOOLEAN,
+				allowNull: false,
+				defaultValue: false,
+			},
+			orderSession: DataTypes.INTEGER,
 		},
 		{
 			sequelize,

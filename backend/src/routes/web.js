@@ -15,6 +15,7 @@ let initWebRoutes = (app) => {
 	router.post("/api/logoutAdmin", adminController.HandleLogOut);
 	router.get("/api/get-all-table", apiController.HandleGetAllTable);
 	router.get("/api/get-all-order", apiController.HandleGetAllOrder);
+	router.get("/api/get-all-orderDetail", apiController.HandleGetAllOrderDetail);
 	router.get("/api/get-all-reservation", apiController.HandleGetAllReservation);
 	// router.get("/api/get-all-slot", apiController.HandleGetAllSlot);
 	// router.get("/api/get-info-car", userController.HandleGetInfoCar);
@@ -26,6 +27,14 @@ let initWebRoutes = (app) => {
 	// router.put("/api/edit-user", userController.HandleEditUser);
 	router.post("/api/create-new-user", userController.HandleCreateNewUser);
 	router.post("/api/create-new-order", apiController.HandleCreateNewOrder);
+	router.post(
+		"/api/update-order-status",
+		apiController.HandleUpdateOrderDetail
+	);
+	router.post(
+		"/api/create-new-orderDetail",
+		apiController.HandleCreateOrderDetail
+	);
 	router.post(
 		"/api/create-new-dish",
 		uploadCloud.single("image"),

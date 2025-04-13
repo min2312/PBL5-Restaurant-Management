@@ -1,3 +1,4 @@
+import { or } from "sequelize";
 import apiService from "../service/apiService";
 const cloudinary = require("cloudinary").v2;
 
@@ -32,6 +33,23 @@ let HandleGetAllOrder = async (req, res) => {
 		errCode: 0,
 		errMessage: "OK",
 		order: order,
+	});
+};
+
+let HandleGetAllOrderDetail = async (req, res) => {
+	let id = req.query.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+			orderDetail: [],
+		});
+	}
+	let orderDetail = await apiService.GetAllOrderDetail(id);
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		orderDetail: orderDetail,
 	});
 };
 
@@ -158,6 +176,38 @@ let HandleGetAllDish = async (req, res) => {
 	});
 };
 
+let HandleCreateOrderDetail = async (req, res) => {
+	let { orderId, dishList } = req.body;
+	if (!orderId || !dishList || !Array.isArray(dishList)) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.CreateOrderDetail(orderId, dishList);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		orderDetail: result.orderDetail,
+	});
+};
+
+let HandleUpdateOrderDetail = async (req, res) => {
+	let { dishId, orderSession } = req.body;
+	if (!dishId || !orderSession) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.updateOrderDetail(dishId, orderSession);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		orderDetail: result.orderDetail,
+	});
+};
+
 module.exports = {
 	HandleGetAllTable,
 	HandleCreateNewCustomer,
@@ -167,4 +217,7 @@ module.exports = {
 	HandleGetAllReservation,
 	HandleCreateDish,
 	HandleGetAllDish,
+	HandleCreateOrderDetail,
+	HandleGetAllOrderDetail,
+	HandleUpdateOrderDetail,
 };
