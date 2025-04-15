@@ -65,7 +65,7 @@ const checkUserJWT = (req, res, next) => {
 				req.token = token;
 			} else {
 				return res.status(401).json({
-					errCode: -1,
+					errCode: -2,
 					errMessage: "Not Authenticated the user",
 				});
 			}
@@ -75,7 +75,7 @@ const checkUserJWT = (req, res, next) => {
 			let decoded = verifyToken(token);
 			if (decoded.error === "TokenExpiredError") {
 				return res.status(401).json({
-					errCode: -2,
+					errCode: -1,
 					errMessage: "Token has expired. Please log in again.",
 				});
 			}
@@ -92,7 +92,7 @@ const checkUserJWT = (req, res, next) => {
 		next();
 	} else {
 		return res.status(401).json({
-			errCode: -1,
+			errCode: -2,
 			errMessage: "Not Authenticated the user",
 		});
 	}
