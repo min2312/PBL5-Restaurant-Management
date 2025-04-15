@@ -77,7 +77,7 @@ let HandleEditUser = async (req, res) => {
 const getUserAccount = async (req, res) => {
 	if (!req.user) {
 		return res.status(401).json({
-			errCode: -1,
+			errCode: -2,
 			errMessage: "Not Authenticated the user",
 		});
 	}

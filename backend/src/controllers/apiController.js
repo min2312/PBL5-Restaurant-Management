@@ -119,6 +119,22 @@ let HandleCreateNewOrder = async (req, res) => {
 	});
 };
 
+let HandleUpdateOrder = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.updateOrder(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		order: result.order,
+	});
+};
+
 let HandleCreateDish = async (req, res) => {
 	let data = req.body;
 	let fileImage = req.file;
@@ -193,18 +209,90 @@ let HandleCreateOrderDetail = async (req, res) => {
 };
 
 let HandleUpdateOrderDetail = async (req, res) => {
-	let { dishId, orderSession } = req.body;
-	if (!dishId || !orderSession) {
+	let { dishId, orderSession, idOrder } = req.body;
+	if (!dishId || !orderSession || !idOrder) {
 		return res.status(200).json({
 			errCode: 1,
 			errMessage: "Missing required parameter",
 		});
 	}
-	let result = await apiService.updateOrderDetail(dishId, orderSession);
+	let result = await apiService.updateOrderDetail(
+		dishId,
+		orderSession,
+		idOrder
+	);
 	return res.status(200).json({
 		errCode: result.errCode,
 		errMessage: result.errMessage,
 		orderDetail: result.orderDetail,
+	});
+};
+
+let HandleCreateInvoice = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.CreateInvoice(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		invoice: result.invoice,
+	});
+};
+
+let HandleGetInvoice = async (req, res) => {
+	let id = req.query.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+			invoice: [],
+		});
+	}
+	let invoice = await apiService.GetInvoice(id);
+	return res.status(200).json({
+		errCode: invoice.errCode,
+		errMessage: invoice.errMessage,
+		invoice: invoice.invoice,
+		total: invoice.total,
+	});
+};
+
+let HandleUpdateCustomer = async (req, res) => {
+	let data = req.body;
+	console.log("data", data);
+	console.log("dataId", data.customerId);
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.UpdateCustomer(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		customer: result.customer,
+	});
+};
+
+let HandleUpdateDiscount = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.updateCustomerDiscount(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		customer: result.customer,
 	});
 };
 
@@ -213,6 +301,7 @@ module.exports = {
 	HandleCreateNewCustomer,
 	HandleCheckCustomer,
 	HandleCreateNewOrder,
+	HandleUpdateCustomer,
 	HandleGetAllOrder,
 	HandleGetAllReservation,
 	HandleCreateDish,
@@ -220,4 +309,8 @@ module.exports = {
 	HandleCreateOrderDetail,
 	HandleGetAllOrderDetail,
 	HandleUpdateOrderDetail,
+	HandleUpdateOrder,
+	HandleCreateInvoice,
+	HandleGetInvoice,
+	HandleUpdateDiscount,
 };

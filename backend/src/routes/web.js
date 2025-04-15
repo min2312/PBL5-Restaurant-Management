@@ -15,6 +15,7 @@ let initWebRoutes = (app) => {
 	router.post("/api/logoutAdmin", adminController.HandleLogOut);
 	router.get("/api/get-all-table", apiController.HandleGetAllTable);
 	router.get("/api/get-all-order", apiController.HandleGetAllOrder);
+	router.get("/api/get-invoice", apiController.HandleGetInvoice);
 	router.get("/api/get-all-orderDetail", apiController.HandleGetAllOrderDetail);
 	router.get("/api/get-all-reservation", apiController.HandleGetAllReservation);
 	// router.get("/api/get-all-slot", apiController.HandleGetAllSlot);
@@ -27,6 +28,8 @@ let initWebRoutes = (app) => {
 	// router.put("/api/edit-user", userController.HandleEditUser);
 	router.post("/api/create-new-user", userController.HandleCreateNewUser);
 	router.post("/api/create-new-order", apiController.HandleCreateNewOrder);
+	router.post("/api/order-status", apiController.HandleUpdateOrder);
+	router.post("/api/create-invoice", apiController.HandleCreateInvoice);
 	router.post(
 		"/api/update-order-status",
 		apiController.HandleUpdateOrderDetail
@@ -45,6 +48,8 @@ let initWebRoutes = (app) => {
 		apiController.HandleCreateNewCustomer
 	);
 	router.post("/api/check-customer", apiController.HandleCheckCustomer);
+	router.post("/api/update-customer", apiController.HandleUpdateCustomer);
+	router.post("/api/update-discount", apiController.HandleUpdateDiscount);
 	// router.post("/api/create-ticket", apiController.HandleCreatePayment);
 	// router.post("/api/cancel-deposit", apiController.CancelDepositMoney);
 	// router.post("/api/deposit-money", apiController.HandleDepositMoney);

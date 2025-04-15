@@ -81,7 +81,7 @@ let GetAllOrderDetail = (orderId) => {
 					include: [
 						{
 							model: db.Order,
-							attributes: ["id", "tableId"],
+							attributes: ["id", "tableId", "status", "customerId"],
 						},
 						{
 							model: db.Dish,
@@ -95,7 +95,7 @@ let GetAllOrderDetail = (orderId) => {
 					include: [
 						{
 							model: db.Order,
-							attributes: ["id", "tableId"],
+							attributes: ["id", "tableId", "status", "customerId"],
 						},
 						{
 							model: db.Dish,
@@ -169,6 +169,73 @@ let CheckCustomer = (phone) => {
 	});
 };
 
+let UpdateCustomer = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Customer.findOne({
+				where: { id: data.customerId },
+			});
+			if (check) {
+				let rewardPoints = Math.floor(data.totalAmount / 10000);
+				let updatedPoints = (check.points || 0) + rewardPoints;
+
+				await check.update({
+					points: updatedPoints,
+				});
+
+				resolve({
+					errCode: 0,
+					errMessage: "Update customer successfully",
+					customer: check,
+				});
+			}
+			if (!check) {
+				resolve({
+					errCode: 1,
+					errMessage: "Customer does not exist",
+				});
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let updateCustomerDiscount = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Customer.findOne({
+				where: { id: data.customerId },
+			});
+			if (check) {
+				let updatedPoints = check.points - data.discount;
+				if (updatedPoints < 0) {
+					resolve({
+						errCode: 1,
+						errMessage: "Not enough points",
+					});
+					return;
+				}
+				await check.update({
+					points: updatedPoints,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Update customer successfully",
+					customer: check,
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Customer does not exist",
+				});
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 let GetAllReservation = (reservationId) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -223,7 +290,17 @@ let ReservationTable = (data) => {
 				{ status: data.status },
 				{ where: { tableNumber: data.table.tableNumber } }
 			);
-
+			if (existingReservation && data.status === "AVAILABLE") {
+				let newReservation = await existingReservation.update({
+					status: "Confirmed",
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Reservation confirmed",
+					reservation: newReservation,
+				});
+				return;
+			}
 			if (existingReservation) {
 				if (existingReservation.customerId) {
 					resolve({
@@ -251,11 +328,23 @@ let ReservationTable = (data) => {
 				customerId: data.customer?.id || null,
 				tableId: data.table.id,
 			});
-
+			let findNewReservation = await db.Reservation.findOne({
+				where: { id: newReservation.id },
+				include: [
+					{
+						model: db.Customer,
+						attributes: ["id", "name", "phone", "points"],
+					},
+					{
+						model: db.Table,
+						attributes: ["id", "tableNumber"],
+					},
+				],
+			});
 			resolve({
 				errCode: 0,
 				errMessage: "Reservation created successfully",
-				reservation: newReservation,
+				reservation: findNewReservation,
 			});
 		} catch (error) {
 			reject({
@@ -313,6 +402,37 @@ let CreateOrder = (data) => {
 	});
 };
 
+let updateOrder = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let order = await db.Order.findOne({
+				where: { id: data.order.id },
+			});
+			if (order) {
+				await order.update({
+					status: data.status,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Update order successfully",
+					order: order,
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Order not found",
+				});
+			}
+		} catch (e) {
+			console.log(e);
+			reject({
+				errCode: 1,
+				errMessage: "Error creating/updating order",
+			});
+		}
+	});
+};
+
 let CreateOrderDetail = (orderId, dishList) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -336,7 +456,7 @@ let CreateOrderDetail = (orderId, dishList) => {
 				include: [
 					{
 						model: db.Order,
-						attributes: ["id", "tableId"],
+						attributes: ["id", "tableId", "status"],
 					},
 					{
 						model: db.Dish,
@@ -359,11 +479,11 @@ let CreateOrderDetail = (orderId, dishList) => {
 	});
 };
 
-let updateOrderDetail = (dishId, orderSession) => {
+let updateOrderDetail = (dishId, orderSession, orderId) => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let orderDetail = await db.OrderDetail.findOne({
-				where: { dishId: dishId, orderSession: orderSession },
+				where: { dishId: dishId, orderSession: orderSession, orderId: orderId },
 			});
 			if (orderDetail) {
 				await orderDetail.update({
@@ -385,6 +505,99 @@ let updateOrderDetail = (dishId, orderSession) => {
 			reject({
 				errCode: 1,
 				errMessage: "Error creating/updating order detail",
+			});
+		}
+	});
+};
+
+let CreateInvoice = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let order_invoice = await db.Invoice.findOne({
+				where: { orderId: data.order?.id || data.orderId },
+				include: [
+					{
+						model: db.Order,
+						attributes: ["id", "tableId"],
+					},
+				],
+			});
+
+			if (order_invoice) {
+				if (order_invoice.paymentMethod) {
+					return resolve({
+						errCode: 1,
+						errMessage: "The invoice already exists",
+					});
+				}
+
+				await order_invoice.update({
+					paymentMethod: data.paymentMethod,
+				});
+
+				return resolve({
+					errCode: 0,
+					errMessage: "Update invoice successfully",
+					invoice: order_invoice,
+				});
+			}
+			let invoice = await db.Invoice.create({
+				orderId: data.order.id,
+				tableId: data.order.tableId,
+				totalAmount: data.totalAmount,
+				paymentMethod: data.paymentMethod || null,
+			});
+
+			let newInvoice = await db.Invoice.findOne({
+				where: { id: invoice.id },
+				include: [
+					{
+						model: db.Order,
+						attributes: ["id", "tableId"],
+					},
+				],
+			});
+
+			return resolve({
+				errCode: 0,
+				errMessage: "Create invoice successfully",
+				invoice: newInvoice,
+			});
+		} catch (e) {
+			console.log(e);
+			return reject({
+				errCode: 1,
+				errMessage: "Error creating invoice",
+			});
+		}
+	});
+};
+
+let GetInvoice = (id_table) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let invoice = await db.Invoice.findOne({
+				where: { tableId: id_table, paymentMethod: null },
+			});
+			if (invoice) {
+				let orderMenu = await GetAllOrderDetail(invoice.orderId);
+				resolve({
+					errCode: 0,
+					errMessage: "Get invoice successfully",
+					invoice: orderMenu,
+					total: invoice.totalAmount,
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Invoice not found",
+				});
+			}
+		} catch (e) {
+			console.log(e);
+			reject({
+				errCode: 1,
+				errMessage: "Error creating/updating invoice",
 			});
 		}
 	});
@@ -614,13 +827,18 @@ module.exports = {
 	GetAllDish,
 	CreateNewCustomer,
 	CheckCustomer,
+	UpdateCustomer,
 	ReservationTable,
 	CreateOrder,
+	updateOrder,
 	CreateOrderDetail,
 	updateOrderDetail,
 	CreateDish,
+	CreateInvoice,
+	GetInvoice,
 	PaymentMoMo,
 	createZaloPayOrder,
 	checkZaloPayOrderStatus,
 	callbackZaloPayOrder,
+	updateCustomerDiscount,
 };
