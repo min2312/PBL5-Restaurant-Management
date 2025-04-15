@@ -110,6 +110,61 @@ const UpdateOrderDetail = (data) => {
 		});
 };
 
+const UpdateOrder = (data) => {
+	return axios
+		.post("/api/order-status", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const CreateInvoice = (data) => {
+	return axios
+		.post("/api/create-invoice", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const GetInvoice = (InputId) => {
+	return axios
+		.get(`/api/get-invoice?id=${InputId}`)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const UpdateCustomer = (data) => {
+	return axios
+		.post("/api/update-customer", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const UpdateDiscount = (data) => {
+	return axios
+		.post("/api/update-discount", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
 export {
 	GetAllTable,
 	GetAllDish,
@@ -121,4 +176,9 @@ export {
 	GetAllReservation,
 	GetAllOrderDetail,
 	UpdateOrderDetail,
+	UpdateOrder,
+	CreateInvoice,
+	GetInvoice,
+	UpdateCustomer,
+	UpdateDiscount,
 };

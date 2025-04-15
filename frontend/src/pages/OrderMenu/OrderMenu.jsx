@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { UserContext } from "../../Context/UserProvider";
 import { toast } from "react-toastify";
-import { useLocation } from "react-router-dom/cjs/react-router-dom.min";
+import {
+	useHistory,
+	useLocation,
+} from "react-router-dom/cjs/react-router-dom.min";
 import {
 	GetAllDish,
 	CreateNewOrderDetail,
 	GetAllOrderDetail,
 	UpdateOrderDetail,
+	UpdateOrder,
+	CreateInvoice,
 } from "../../services/apiService";
+import { io } from "socket.io-client";
 
 const OrderMenu = () => {
 	const location = useLocation();
+	const history = useHistory();
 	const { table, customer, order } = location.state || {};
 	const { user } = useContext(UserContext);
+	const [socket, setSocket] = useState(null);
 	// Declare hooks unconditionally
 	const [menuItems, setMenuItems] = useState([]);
 	const [orderItems, setOrderItems] = useState({});
@@ -38,6 +46,37 @@ const OrderMenu = () => {
 			toast.error("Error fetching menu items");
 		}
 	};
+
+	useEffect(() => {
+		if (!user || !user.token) {
+			toast.error("User not authenticated");
+			return;
+		}
+
+		const newSocket = io("http://localhost:8081", {
+			extraHeaders: {
+				Authorization: `Bearer ${user.token}`,
+			},
+		});
+
+		newSocket.on("connect", () => {
+			console.log("Receptionist connected to WebSocket:", newSocket.id);
+		});
+
+		newSocket.on("connect_error", (err) => {
+			console.error("Connection error:", err.message);
+		});
+
+		newSocket.on("disconnect", (reason) => {
+			console.warn("WebSocket disconnected:", reason);
+		});
+
+		setSocket(newSocket);
+
+		return () => {
+			newSocket.disconnect();
+		};
+	}, [user]);
 
 	useEffect(() => {
 		GetDish();
@@ -112,7 +151,8 @@ const OrderMenu = () => {
 
 	const calculateDiscount = () => {
 		// Mỗi 10 điểm = 1,000 VND giảm giá
-		return Math.min(appliedPoints * 100, calculateSubtotal());
+		const rawTotal = calculateGrandTotalBeforeDiscount();
+		return Math.min(appliedPoints * 100, rawTotal);
 	};
 
 	const calculateTotal = () => {
@@ -132,13 +172,20 @@ const OrderMenu = () => {
 		}, 0);
 	};
 
-	const calculateGrandTotal = () => {
+	// First calculate the raw total, then apply discount
+	const calculateGrandTotalBeforeDiscount = () => {
 		const newItemsTotal = calculateSubtotal();
 		const completedTotal = calculateCompletedOrdersTotal();
-		return completedTotal + newItemsTotal - calculateDiscount();
+		return completedTotal + newItemsTotal;
 	};
 
-	// Update handleSubmitOrder to show total
+	const calculateGrandTotal = () => {
+		const rawTotal = calculateGrandTotalBeforeDiscount();
+		const discount = Math.min(appliedPoints * 100, rawTotal);
+		return rawTotal - discount;
+	};
+
+	// Update handleSubmitOrder to store the applied discount with each order
 	const handleSubmitOrder = async () => {
 		if (Object.keys(orderItems).length === 0) {
 			toast.error("Vui lòng chọn ít nhất một món để đặt hàng");
@@ -152,32 +199,34 @@ const OrderMenu = () => {
 			});
 
 			if (response && response.errCode === 0) {
-				const fetchedOrderItems = response.orderDetail.reduce((acc, order) => {
-					const key = `${order.Dish.id}-${order.orderSession}`;
-					acc[key] = {
-						...order.Dish,
-						quantity: order.quantity,
-						status: order.status,
-						orderSession: order.orderSession,
-					};
-					return acc;
-				}, {});
+				const fetchedOrderItems = response.orderDetail
+					.filter((order) => order.Order.status === "PENDING")
+					.reduce((acc, order) => {
+						const key = `${order.Dish.id}-${order.orderSession}`;
+						acc[key] = {
+							...order.Dish,
+							quantity: order.quantity,
+							status: order.status,
+							orderSession: order.orderSession,
+						};
+						return acc;
+					}, {});
+
+				// Store the current subtotal without applying the discount yet
+				const newOrderSubtotal = Object.values(fetchedOrderItems).reduce(
+					(sum, item) => sum + item.price * item.quantity,
+					0
+				);
+
 				const newOrder = {
 					items: fetchedOrderItems,
-					// status: response.orderDetail.reduce((acc, order) => {
-					// 	const key = `${order.Dish.id}-${order.orderSession}`;
-					// 	acc[key] = order.status || false; // Set status based on API data
-					// 	return acc;
-					// }, {}),
 					timestamp: new Date().toISOString(),
-					total: calculateSubtotal(),
+					subtotal: newOrderSubtotal, // Store raw subtotal
 				};
-				// for (const item of Object.values(orderItems)) {
-				// 	newOrder.status[item.id] = false;
-				// }
+
 				setCompletedOrders((prev) => [...prev, newOrder]);
 				toast.success("Đặt món thành công!");
-				setOrderItems({});
+				setOrderItems({}); // Clear current order items
 				setIsOrdered(true);
 			} else {
 				toast.error(response.errMessage || "Thêm món thất bại!");
@@ -187,12 +236,18 @@ const OrderMenu = () => {
 			toast.error("Đã xảy ra lỗi khi thêm món!");
 		}
 	};
+
 	const handleItemReady = async (orderId, itemId) => {
 		const dishId = completedOrders[orderId].items[itemId].id;
 		const orderSession = completedOrders[orderId].items[itemId].orderSession;
+		const idOrder = order.id;
 
 		try {
-			const response = await UpdateOrderDetail({ dishId, orderSession });
+			const response = await UpdateOrderDetail({
+				dishId,
+				orderSession,
+				idOrder,
+			});
 			if (response && response.errCode === 0) {
 				setCompletedOrders((prev) => {
 					const updated = [...prev];
@@ -223,16 +278,48 @@ const OrderMenu = () => {
 		return Object.values(order.items).every((item) => item.status === true);
 	};
 
-	const handlePayment = () => {
+	const handlePayment = async () => {
 		if (!completedOrders.every((order) => isAllItemsReady(order))) {
 			toast.error("Vui lòng chờ nhà bếp hoàn thành tất cả món");
 			return;
 		}
-		console.log("Processing payment...");
-		toast.success("Thanh toán thành công!");
-		setCompletedOrders([]);
-		setIsOrdered(false);
-		setOrderItems({});
+
+		// Calculate the final total with discount applied
+		const finalTotal = calculateGrandTotal();
+
+		let data = {
+			order: order,
+			totalAmount: finalTotal, // Use the discounted total
+			table: table,
+			status: "Completed",
+			customer: customer || null,
+			appliedPoints: appliedPoints, // Pass the points information to the API
+		};
+
+		try {
+			// Run API calls concurrently
+			const [res, respone] = await Promise.all([
+				CreateInvoice(data),
+				UpdateOrder(data),
+			]);
+
+			if (res && respone && res.errCode === 0 && respone.errCode === 0) {
+				socket.emit("updateOrder", respone);
+				socket.emit("updateTable", data);
+				toast.success("Đã Gửi thông tin thanh toán");
+				setCompletedOrders([]);
+				setIsOrdered(false);
+				setOrderItems({});
+				setAppliedPoints(0); // Reset applied points after payment
+				setPointsToUse(0); // Reset points to use after payment
+				history.push("/waiter");
+			} else {
+				toast.error("Error Notification!");
+			}
+		} catch (error) {
+			console.error("Error during payment:", error);
+			toast.error("Đã xảy ra lỗi khi thanh toán!");
+		}
 	};
 
 	const scrollToCategory = (categoryId) => {
@@ -272,30 +359,35 @@ const OrderMenu = () => {
 		try {
 			let response = await GetAllOrderDetail(order.id);
 			if (response && response.errCode === 0) {
-				const fetchedOrderItems = response.orderDetail.reduce((acc, order) => {
-					const key = `${order.Dish.id}-${order.orderSession}`;
-					acc[key] = {
-						...order.Dish,
-						quantity: order.quantity,
-						status: order.status,
-						orderSession: order.orderSession,
-					};
-					return acc;
-				}, {});
+				const fetchedOrderItems = response.orderDetail
+					.filter((order) => order.Order.status === "PENDING")
+					.reduce((acc, order) => {
+						const key = `${order.Dish.id}-${order.orderSession}`;
+						acc[key] = {
+							...order.Dish,
+							quantity: order.quantity,
+							status: order.status,
+							orderSession: order.orderSession,
+						};
+						return acc;
+					}, {});
+
+				if (Object.keys(fetchedOrderItems).length === 0) {
+					return;
+				}
+
+				// Calculate the subtotal for existing orders
+				const orderSubtotal = Object.values(fetchedOrderItems).reduce(
+					(sum, item) => sum + item.price * item.quantity,
+					0
+				);
+
 				const newOrder = {
 					items: fetchedOrderItems,
-					// status: response.orderDetail.reduce((acc, order) => {
-					// 	const key = `${order.Dish.id}-${order.orderSession}`;
-					// 	acc[key] = order.status || false; // Set status based on API data
-					// 	return acc;
-					// }, {}),
 					timestamp: new Date().toISOString(),
-					total: Object.values(fetchedOrderItems).reduce(
-						(sum, item) => sum + item.price * item.quantity,
-						0
-					),
+					subtotal: orderSubtotal, // Store raw subtotal
 				};
-				// Check for duplicate orders
+
 				setCompletedOrders((prev) => {
 					const isDuplicate = prev.some(
 						(existingOrder) =>
@@ -326,6 +418,7 @@ const OrderMenu = () => {
 	if (!table || !customer) {
 		return <div>No table or customer information provided</div>;
 	}
+
 	return (
 		<div className="bg-light min-vh-100">
 			{/* Header */}
@@ -585,6 +678,12 @@ const OrderMenu = () => {
 												Áp dụng
 											</button>
 										</div>
+										{appliedPoints > 0 && (
+											<div className="mt-2 text-success">
+												<i className="bi bi-check-circle me-1"></i>
+												Đã áp dụng {appliedPoints} điểm
+											</div>
+										)}
 									</div>
 								</div>
 

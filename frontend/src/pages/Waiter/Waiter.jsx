@@ -63,9 +63,10 @@ const Waiter = () => {
 				if (respone.order && respone.order.length > 0) {
 					respone.order.forEach((order) => {
 						let tableNumber = order.Table?.tableNumber;
+						let tableId = order.Table?.id;
 						let user = order.User;
 						if (tableNumber && user && order.status === "PENDING") {
-							setOrder(order);
+							setOrder((prev) => ({ ...prev, [tableId]: order }));
 							setStaff((prev) => ({
 								...prev,
 								[tableNumber]: user,
@@ -81,7 +82,6 @@ const Waiter = () => {
 			console.log("err:", e);
 		}
 	};
-
 	const GetReservation = async () => {
 		try {
 			let id_reservation = "ALL";
@@ -92,7 +92,7 @@ const Waiter = () => {
 				allReservations.forEach((reservation) => {
 					let tableNumber = reservation.Table?.tableNumber;
 					let customer = reservation.Customer;
-					if (tableNumber && customer) {
+					if (tableNumber && customer && reservation.status === "Pending") {
 						setCustomerInfoByTable((prev) => ({
 							...prev,
 							[tableNumber]: customer,
@@ -139,10 +139,20 @@ const Waiter = () => {
 						: table
 				)
 			);
-			setCustomerInfoByTable((prev) => ({
-				...prev,
-				[data.table.tableNumber]: data.customer,
-			}));
+			if (data.response && data.response.errCode === 0) {
+				if (data.response.reservation?.status === "Pending") {
+					setCustomerInfoByTable((prev) => ({
+						...prev,
+						[data.table.tableNumber]: data.customer,
+					}));
+				} else {
+					setCustomerInfoByTable((prev) => {
+						const updated = { ...prev };
+						delete updated[data.table.tableNumber];
+						return updated;
+					});
+				}
+			}
 		});
 
 		newSocket.on("orderUpdated", (respone) => {
@@ -221,7 +231,7 @@ const Waiter = () => {
 					history.push("/order-menu", {
 						table: table,
 						customer: customerInfoByTable[table.tableNumber] || null,
-						order: order,
+						order: order[table.tableNumber] || null,
 					});
 					return;
 				} else {
@@ -255,7 +265,11 @@ const Waiter = () => {
 			let respone = await CreateNewOrder(data);
 			if (respone && respone.errCode === 0) {
 				socket.emit("updateOrder", respone);
-				setOrder(respone.order);
+				setOrder((prev) => ({
+					...prev,
+					[selectedTable.id]: respone.order,
+				}));
+				// setOrder(respone.order);
 				history.push("/order-menu", {
 					table: selectedTable,
 					customer: customerInfo,
@@ -446,7 +460,8 @@ const Waiter = () => {
 										onClick={() => {
 											if (
 												!(isOccupied && !isServedByMe) &&
-												table.status !== "AVAILABLE"
+												table.status !== "AVAILABLE" &&
+												table.status !== "Completed"
 											) {
 												handleTableSelection(table);
 											}
@@ -537,6 +552,11 @@ const Waiter = () => {
 													<button className="btn btn-secondary" disabled>
 														<i className="bi bi-x-circle me-2"></i>
 														Not Available
+													</button>
+												) : table.status === "Completed" ? (
+													<button className="btn btn-info" disabled>
+														<i className="bi bi-cash-coin me-2"></i>
+														Waiting for Payment
 													</button>
 												) : (
 													<button
