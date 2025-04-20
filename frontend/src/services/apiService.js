@@ -165,6 +165,14 @@ const UpdateDiscount = (data) => {
 		});
 };
 
+const PaymentZaloPay = async (user) => {
+	return axios.post("/payment/ZaloPay", user);
+};
+
+const CheckPayment = async (apptransid) => {
+	return axios.post("/payment/CheckZaloPay", { app_trans_id: apptransid });
+};
+
 export {
 	GetAllTable,
 	GetAllDish,
@@ -181,4 +189,6 @@ export {
 	GetInvoice,
 	UpdateCustomer,
 	UpdateDiscount,
+	PaymentZaloPay,
+	CheckPayment,
 };

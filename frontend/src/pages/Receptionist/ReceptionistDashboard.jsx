@@ -1,20 +1,22 @@
-import React, { useContext, useEffect, useState } from "react";
-import { useHistory } from "react-router-dom";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { Modal, Button } from "react-bootstrap";
 import "./ReceptionistDashboard.css";
 import CustomerModal from "../../Component/Customer/CustomerModal";
 import {
 	CheckCustomer,
+	CheckPayment,
 	CreateInvoice,
 	CreateNewCustomer,
 	GetAllTable,
 	GetInvoice,
+	PaymentZaloPay,
 	UpdateCustomer,
 	UpdateDiscount,
 } from "../../services/apiService";
 import { toast } from "react-toastify";
 import { io } from "socket.io-client";
 import { UserContext } from "../../Context/UserProvider";
+import { useLocation } from "react-router-dom/cjs/react-router-dom.min";
 
 const ReceptionistDashboard = () => {
 	const [phoneNumber, setPhoneNumber] = useState("");
@@ -31,8 +33,9 @@ const ReceptionistDashboard = () => {
 		invoiceItems: [],
 		discount: 0,
 		finalAmount: 0,
+		customerInfo: null,
 	});
-	const history = useHistory();
+
 	const { user } = useContext(UserContext);
 
 	const GetData = async () => {
@@ -53,6 +56,167 @@ const ReceptionistDashboard = () => {
 	useEffect(() => {
 		GetData();
 	}, []);
+
+	const location = useLocation();
+	const queryParams = new URLSearchParams(location.search);
+	const appTransId = queryParams.get("apptransid");
+	const status = queryParams.get("status");
+	const amount = queryParams.get("amount");
+	const hasChecked = useRef(false);
+	const tableId = queryParams.get("tableId");
+	const CheckCallBackPayment = async () => {
+		if (hasChecked.current || !appTransId || !status) return;
+		hasChecked.current = true;
+
+		try {
+			const [response, table] = await Promise.all([
+				GetInvoice(tableId),
+				GetAllTable(tableId),
+			]);
+
+			if (response && response.errCode === 0) {
+				const invoiceItems = response.invoice || [];
+				const customerInfo = invoiceItems[0]?.Order?.Customer || null;
+				const totalAmount = invoiceItems.reduce(
+					(sum, item) => sum + (item.Dish.price || 0) * (item.quantity || 0),
+					0
+				);
+				const discount = totalAmount - (response.total || 0);
+				const finalAmount = totalAmount - Math.max(discount, 0);
+
+				setPaymentInfo({
+					table: table.table[0],
+					totalAmount,
+					invoiceItems,
+					discount: Math.max(discount, 0),
+					finalAmount,
+					customerInfo,
+				});
+
+				if (status !== "-49") {
+					const paymentStatus = await CheckPayment(appTransId);
+
+					if (paymentStatus && paymentStatus.return_code === 1) {
+						let data = {
+							orderId: invoiceItems[0].orderId,
+							customerId: invoiceItems[0].Order.customerId,
+							discount: discount / 100,
+							totalAmount: totalAmount,
+							paymentMethod: "Bank Transfer",
+							table: table.table,
+							status: "Completed",
+						};
+
+						let update = await UpdateDiscount(data);
+						const [res, respone1] = await Promise.all([
+							CreateInvoice(data),
+							UpdateCustomer(data),
+						]);
+
+						if (res.errCode === 0 && respone1.errCode === 0) {
+							toast.success(`Payment successful via Bank Transfer`);
+							try {
+								const socketConnection = await createSocketConnection(
+									user.token
+								);
+
+								let socketData = {
+									table: table.table[0],
+									status: "AVAILABLE",
+								};
+
+								await emitSocketEvent(
+									socketConnection,
+									"updateTable",
+									socketData
+								);
+
+								socketConnection.disconnect();
+							} catch (socketError) {
+								console.error("Socket error:", socketError);
+							}
+						} else {
+							toast.error(res.errMessage || "Failed to update DB");
+						}
+					} else {
+						toast.error(
+							paymentStatus.return_message || "Payment verification failed"
+						);
+					}
+				} else {
+					toast.error("Transaction failed");
+				}
+			} else {
+				toast.error(response.errMessage || "Failed to get invoice");
+			}
+
+			const newUrl = window.location.origin + window.location.pathname;
+			window.history.replaceState({}, document.title, newUrl);
+		} catch (error) {
+			console.error("Error in CheckPayment:", error);
+			toast.error("Error while verifying payment");
+		}
+	};
+
+	const createSocketConnection = (userToken) => {
+		if (!userToken) {
+			return Promise.reject(new Error("User token not available"));
+		}
+
+		return new Promise((resolve, reject) => {
+			const newSocket = io("http://localhost:8081", {
+				extraHeaders: {
+					Authorization: `Bearer ${userToken}`,
+				},
+			});
+
+			newSocket.on("connect", () => {
+				console.log("Socket connected successfully:", newSocket.id);
+				resolve(newSocket);
+			});
+
+			newSocket.on("connect_error", (err) => {
+				console.error("Socket connection error:", err.message);
+				reject(err);
+			});
+
+			setTimeout(() => {
+				if (!newSocket.connected) {
+					reject(new Error("Socket connection timeout after 5 seconds"));
+				}
+			}, 5000);
+		});
+	};
+
+	const emitSocketEvent = (socketInstance, eventName, data) => {
+		return new Promise((resolve, reject) => {
+			if (!socketInstance || !socketInstance.connected) {
+				reject(new Error("Socket is not connected"));
+				return;
+			}
+
+			socketInstance.emit(eventName, data, (acknowledgment) => {
+				if (acknowledgment && acknowledgment.success) {
+					console.log(`${eventName} event acknowledged:`, acknowledgment);
+					resolve(acknowledgment);
+				} else {
+					console.error(`${eventName} event failed:`, acknowledgment);
+					reject(new Error(`Failed to emit ${eventName} event`));
+				}
+			});
+
+			setTimeout(() => {
+				reject(
+					new Error(`Socket event ${eventName} timed out after 5 seconds`)
+				);
+			}, 5000);
+		});
+	};
+	useEffect(() => {
+		if (appTransId && status && tableId) {
+			CheckCallBackPayment();
+		}
+	}, [appTransId, status, tableId]);
 
 	useEffect(() => {
 		if (!user || !user.token) {
@@ -136,7 +300,7 @@ const ReceptionistDashboard = () => {
 
 			if (response && response.errCode === 0) {
 				const invoiceItems = response.invoice || [];
-
+				const customerInfo = invoiceItems[0]?.Order?.Customer || null;
 				// Calculate total amount from all items
 				const totalAmount = invoiceItems.reduce((sum, item) => {
 					return sum + (item.Dish.price || 0) * (item.quantity || 0);
@@ -153,6 +317,7 @@ const ReceptionistDashboard = () => {
 					invoiceItems,
 					discount: Math.max(discount, 0), // Ensure discount is non-negative
 					finalAmount,
+					customerInfo,
 				});
 
 				setPaymentModalOpen(true);
@@ -164,8 +329,6 @@ const ReceptionistDashboard = () => {
 			toast.error("Failed to get invoice data");
 		}
 	};
-
-	console.log("paymentInfo", paymentInfo);
 
 	const handleCloseInfo = () => {
 		setCustomerInfo(null);
@@ -195,42 +358,64 @@ const ReceptionistDashboard = () => {
 		if (!paymentInfo.invoiceItems[0] || !paymentInfo.invoiceItems[0].Order) {
 			return;
 		}
+		if (method === "Cash") {
+			let data = {
+				orderId: paymentInfo.invoiceItems[0].orderId,
+				customerId: paymentInfo.invoiceItems[0].Order.customerId,
+				discount: paymentInfo.discount / 100,
+				totalAmount: paymentInfo.totalAmount,
+				paymentMethod: method,
+				table: paymentInfo.table,
+				status: "Completed",
+			};
+			let update = await UpdateDiscount(data);
+			const [res, respone] = await Promise.all([
+				CreateInvoice(data),
+				UpdateCustomer(data),
+			]);
+			if (res && respone && respone.errCode === 0 && res.errCode === 0) {
+				toast.success(`Payment successful via ${method}`);
+				setPaymentModalOpen(false);
+				setPaymentInfo({
+					table: null,
+					totalAmount: 0,
+					invoiceItems: [],
+					discount: 0,
+					finalAmount: 0,
+					customerInfo: null,
+				});
 
-		let data = {
-			orderId: paymentInfo.invoiceItems[0].orderId,
-			customerId: paymentInfo.invoiceItems[0].Order.customerId,
-			discount: paymentInfo.discount / 100,
-			totalAmount: paymentInfo.totalAmount,
-			paymentMethod: method,
-			table: table,
-			status: "Completed",
-		};
-		let update = await UpdateDiscount(data);
-		const [res, respone] = await Promise.all([
-			CreateInvoice(data),
-			UpdateCustomer(data),
-		]);
-		if (res && respone && respone.errCode === 0 && res.errCode === 0) {
-			toast.success(`Payment successful via ${method}`);
-			setPaymentModalOpen(false);
-			setPaymentInfo({
-				table: null,
-				totalAmount: 0,
-				invoiceItems: [],
-				discount: 0,
-				finalAmount: 0,
-			});
-
-			// Update table status after payment
-			if (socket && paymentInfo.table) {
-				let data = {
-					table: paymentInfo.table,
-					status: "AVAILABLE",
-				};
-				socket.emit("updateTable", data);
+				// Update table status after payment
+				if (socket && paymentInfo.table) {
+					let data = {
+						table: paymentInfo.table,
+						status: "AVAILABLE",
+					};
+					socket.emit("updateTable", data);
+				}
+			} else {
+				toast.error(res.errMessage || "Payment failed");
 			}
-		} else {
-			toast.error(res.errMessage || "Payment failed");
+		} else if (method === "Bank Transfer") {
+			try {
+				let data = {
+					orderId: paymentInfo.invoiceItems[0].orderId,
+					customerId: paymentInfo.invoiceItems[0].Order.customerId,
+					discount: paymentInfo.discount / 100,
+					totalAmount: paymentInfo.totalAmount,
+					paymentMethod: method,
+					table: paymentInfo.table,
+					status: "Completed",
+				};
+				let payment = await PaymentZaloPay(data);
+				if (payment && payment.return_code === 1) {
+					window.location.href = payment.order_url;
+				} else {
+					toast.error("Payment Failed");
+				}
+			} catch (e) {
+				toast.error("Error while Payment");
+			}
 		}
 	};
 
@@ -403,6 +588,33 @@ const ReceptionistDashboard = () => {
 					</Modal.Title>
 				</Modal.Header>
 				<Modal.Body className="p-4">
+					<div className="card bg-white border-0 shadow-sm mb-4">
+						<div className="card-body p-3">
+							<div className="d-flex align-items-center">
+								<div className="me-3">
+									<i
+										className="bi bi-person-circle text-primary"
+										style={{ fontSize: "2rem" }}
+									></i>
+								</div>
+								<div>
+									<h6 className="mb-1 fw-bold">Customer Information</h6>
+									<p className="mb-0">
+										<span className="fw-medium">Name:</span>{" "}
+										{paymentInfo.customerInfo?.name
+											? paymentInfo.customerInfo.name
+											: "N/A"}
+									</p>
+									<p className="mb-0">
+										<span className="fw-medium">Phone:</span>{" "}
+										{paymentInfo.customerInfo?.phone
+											? paymentInfo.customerInfo.phone
+											: "N/A"}
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
 					<div className="card bg-white border-0 shadow-sm mb-4">
 						<div className="card-header bg-light py-3">
 							<div className="d-flex justify-content-between align-items-center">
