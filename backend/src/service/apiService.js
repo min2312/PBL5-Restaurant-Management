@@ -82,6 +82,12 @@ let GetAllOrderDetail = (orderId) => {
 						{
 							model: db.Order,
 							attributes: ["id", "tableId", "status", "customerId"],
+							include: [
+								{
+									model: db.Customer,
+									attributes: ["name", "phone"],
+								},
+							],
 						},
 						{
 							model: db.Dish,
@@ -96,6 +102,12 @@ let GetAllOrderDetail = (orderId) => {
 						{
 							model: db.Order,
 							attributes: ["id", "tableId", "status", "customerId"],
+							include: [
+								{
+									model: db.Customer,
+									attributes: ["name", "phone"],
+								},
+							],
 						},
 						{
 							model: db.Dish,
@@ -723,8 +735,10 @@ let PaymentMoMo = (amount) => {
 };
 
 const createZaloPayOrder = async (orderDetails) => {
+	let tableId = orderDetails.table ? orderDetails.table.id : null;
+
 	const embed_data = {
-		redirecturl: `http://localhost:3000/ProcessPayment?id_user=${orderDetails.id_user}`,
+		redirecturl: `http://localhost:3000/receptionist?tableId=${tableId}`,
 	};
 	const config = {
 		app_id: "2553",
@@ -736,14 +750,21 @@ const createZaloPayOrder = async (orderDetails) => {
 	const order = {
 		app_id: config.app_id,
 		app_trans_id: `${moment().format("YYMMDD")}_${transID}`,
-		app_user: orderDetails.fullName || "user123",
+		app_user: orderDetails.customerInfo?.name
+			? orderDetails.customerInfo.name
+			: "user123",
 		app_time: Date.now(),
 		item: JSON.stringify(orderDetails.items || []),
 		embed_data: JSON.stringify(embed_data),
-		amount: orderDetails.price || 50000,
+		amount: orderDetails.totalAmount || 50000,
 		callback_url:
-			"https://e983-2001-ee0-4b74-a210-b3fb-e93b-bd97-6202.ngrok-free.app/callback",
-		description: `ZaloPay - Payment for the order #${transID}`,
+			"https://2479-2001-ee0-4b7e-7ad0-48bb-d977-1d61-ba45.ngrok-free.app/callback",
+		description: `ZaloPay - Payment for the order #${transID} - customer: ${
+			orderDetails.customerInfo?.name
+				? orderDetails.customerInfo.name
+				: "user123"
+		}`,
+		lang: "vn",
 		bank_code: "",
 	};
 

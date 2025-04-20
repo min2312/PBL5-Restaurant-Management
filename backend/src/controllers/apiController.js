@@ -88,7 +88,6 @@ let HandleCreateNewCustomer = async (req, res) => {
 
 let HandleCheckCustomer = async (req, res) => {
 	let phoneNumber = req.body.phoneNumber;
-	console.log(phoneNumber);
 	if (!phoneNumber) {
 		return res.status(200).json({
 			errCode: 1,
@@ -264,8 +263,6 @@ let HandleGetInvoice = async (req, res) => {
 
 let HandleUpdateCustomer = async (req, res) => {
 	let data = req.body;
-	console.log("data", data);
-	console.log("dataId", data.customerId);
 	if (!data) {
 		return res.status(200).json({
 			errCode: 1,
@@ -296,6 +293,47 @@ let HandleUpdateDiscount = async (req, res) => {
 	});
 };
 
+let handlePaymentZaloPay = async (req, res) => {
+	try {
+		const paymentResult = await apiService.createZaloPayOrder(req.body);
+		return res.status(200).json(paymentResult);
+	} catch (error) {
+		console.error("ZaloPay error:", error);
+		return res.status(500).json({
+			message: "An error occurred during ZaloPay processing",
+			error: error.message,
+		});
+	}
+};
+
+let handleCheckZaloPay = async (req, res) => {
+	try {
+		const { app_trans_id } = req.body;
+		const paymentResult = await apiService.checkZaloPayOrderStatus(
+			app_trans_id
+		);
+		return res.status(200).json(paymentResult);
+	} catch (error) {
+		console.error("ZaloPay error:", error);
+		return res.status(500).json({
+			message: "An error occurred during ZaloPay processing",
+			error: error.message,
+		});
+	}
+};
+
+let handleCallBackZaloPay = async (req, res) => {
+	try {
+		const paymentResult = await apiService.callbackZaloPayOrder(req.body);
+		return res.status(200).json(paymentResult);
+	} catch (error) {
+		console.error("ZaloPay error:", error);
+		return res.status(500).json({
+			message: "An error occurred during ZaloPay processing",
+			error: error.message,
+		});
+	}
+};
 module.exports = {
 	HandleGetAllTable,
 	HandleCreateNewCustomer,
@@ -313,4 +351,7 @@ module.exports = {
 	HandleCreateInvoice,
 	HandleGetInvoice,
 	HandleUpdateDiscount,
+	handlePaymentZaloPay,
+	handleCheckZaloPay,
+	handleCallBackZaloPay,
 };
