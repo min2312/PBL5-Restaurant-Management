@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { UserContext } from "../../Context/UserProvider";
 import { toast } from "react-toastify";
 
@@ -6,6 +6,7 @@ const Chef = () => {
 	const { user } = useContext(UserContext);
 	const [orders, setOrders] = useState([]);
 	const [loading, setLoading] = useState(true);
+	const [currentTime, setCurrentTime] = useState(new Date());
 
 	// Fetch orders data
 	useEffect(() => {
@@ -124,58 +125,86 @@ const Chef = () => {
 		};
 	}, []);
 
-	// Calculate time since order was placed
-	const getTimeSince = (timestamp) => {
+	// Update clock every second
+	useEffect(() => {
+		const clockInterval = setInterval(() => {
+			setCurrentTime(new Date());
+		}, 1000);
+
+		return () => clearInterval(clockInterval);
+	}, []);
+
+	// Calculate time since order was placed - giữ ngắn gọn
+	const getTimeSince = useCallback((timestamp) => {
 		const orderTime = new Date(timestamp);
 		const now = new Date();
 		const diffInMinutes = Math.floor((now - orderTime) / 60000);
 
 		if (diffInMinutes < 1) return "Vừa xong";
-		if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+		if (diffInMinutes < 60) return `${diffInMinutes} phút`;
 
 		const diffInHours = Math.floor(diffInMinutes / 60);
-		return `${diffInHours} giờ ${diffInMinutes % 60} phút trước`;
-	};
+		return `${diffInHours}g ${diffInMinutes % 60}p`;
+	}, []);
 
-	// Get priority class based on time waiting
-	const getPriorityClass = (timestamp) => {
+	// Get time class based on waiting time
+	const getTimeClass = useCallback((timestamp) => {
 		const orderTime = new Date(timestamp);
 		const now = new Date();
 		const diffInMinutes = Math.floor((now - orderTime) / 60000);
 
-		if (diffInMinutes >= 30) return "border-danger text-danger";
-		if (diffInMinutes >= 15) return "border-warning text-warning";
-		return "border-success text-success";
-	};
+		if (diffInMinutes >= 15) return "text-warning";
+		return "text-success";
+	}, []);
 
-	// Calculate remaining items for an order
-	const getRemainingItems = (items) => {
-		return items.filter((item) => !item.status).length;
-	};
+	// Toggle item status
+	const toggleItemStatus = useCallback((orderId, itemId) => {
+		setOrders((prevOrders) =>
+			prevOrders.map((order) => {
+				if (order.id === orderId) {
+					return {
+						...order,
+						items: order.items.map((item) => {
+							if (item.id === itemId) {
+								return { ...item, status: !item.status };
+							}
+							return item;
+						}),
+					};
+				}
+				return order;
+			})
+		);
+		toast.success("Đã cập nhật trạng thái món ăn");
+	}, []);
 
-	// Total counts
-	const totalPendingOrders = orders.length;
-	const totalPendingItems = orders.reduce(
-		(total, order) => total + order.items.filter((item) => !item.status).length,
-		0
-	);
-	const totalCompletedItems = orders.reduce(
-		(total, order) => total + order.items.filter((item) => item.status).length,
-		0
-	);
+	// Memoized calculations for better performance
+	const { totalPendingOrders, totalPendingItems, totalCompletedItems, ordersByTable } = useMemo(() => {
+		const totalPendingOrders = orders.length;
+		const totalPendingItems = orders.reduce(
+			(total, order) => total + order.items.filter((item) => !item.status).length,
+			0
+		);
+		const totalCompletedItems = orders.reduce(
+			(total, order) => total + order.items.filter((item) => item.status).length,
+			0
+		);
 
-	// Group orders by table
-	const ordersByTable = {};
-	orders.forEach((order) => {
-		const tableNum = order.tableNumber;
-		if (!ordersByTable[tableNum]) {
-			ordersByTable[tableNum] = [];
-		}
-		ordersByTable[tableNum].push(order);
-	});
+		// Group orders by table
+		const ordersByTable = {};
+		orders.forEach((order) => {
+			const tableNum = order.tableNumber;
+			if (!ordersByTable[tableNum]) {
+				ordersByTable[tableNum] = [];
+			}
+			ordersByTable[tableNum].push(order);
+		});
+
+		return { totalPendingOrders, totalPendingItems, totalCompletedItems, ordersByTable };
+	}, [orders]);
 
 	// Get all food items for a table, separating pending and completed items
-	const getTableFoodItems = (tableOrders) => {
+	const getTableFoodItems = useCallback((tableOrders) => {
 		const pendingItems = [];
 		const completedItems = [];
 		tableOrders.forEach((order) => {
@@ -193,31 +222,52 @@ const Chef = () => {
 				}
 			});
 		});
+
+		// Sort pending items by category and priority
+		pendingItems.sort((a, b) => {
+			const categoryOrder = {
+				"Main Course": 1,
+				"Appetizer": 2,
+				"Other": 3,
+				"Drink": 4
+			};
+			const catA = categoryOrder[a.category] || categoryOrder["Other"];
+			const catB = categoryOrder[b.category] || categoryOrder["Other"];
+			if (catA !== catB) return catA - catB;
+			return new Date(a.timestamp) - new Date(b.timestamp);
+		});
+
 		return { pendingItems, completedItems };
-	};
+	}, []);
 
 	return (
-		<div className="bg-dark text-light min-vh-100">
-			{/* Header */}
+		<div className="bg-light text-dark min-vh-100">
+			{/* Header - Made smaller and more compact */}
 			<div
-				className="bg-primary bg-gradient py-2"
+				className="py-1"
 				style={{
-					background: "linear-gradient(135deg, #ff9966 0%, #ff5e62 100%)",
+					background: "linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)",
+					height: "40px",
 				}}
 			>
-				<div className="container-fluid px-4">
-					<div className="row align-items-center">
-						<div className="col-md-6">
-							<h1 className="text-white mb-0 fs-3 fw-bold">
-								<i className="bi bi-shop me-2"></i>
+				<div className="container-fluid px-3">
+					<div className="row align-items-center h-100">
+						<div className="col-6">
+							<h2 className="text-white mb-0 fs-6" style={{ whiteSpace: "nowrap" }}>
+								<i className="bi bi-shop me-1"></i>
 								Màn Hình Nhà Bếp
-							</h1>
+							</h2>
 						</div>
-						<div className="col-md-6 text-md-end">
-							<div className="bg-white bg-opacity-10 rounded p-2 d-inline-block">
+						<div className="col-6 text-end">
+							<div className="bg-white bg-opacity-10 rounded py-1 px-2 d-inline-block">
 								<i className="bi bi-clock me-1"></i>
 								<span id="current-time">
-									{new Date().toLocaleTimeString("vi-VN")}
+									{currentTime.toLocaleTimeString("vi-VN", {
+										hour: "2-digit",
+										minute: "2-digit",
+										second: "2-digit",
+										hour12: false
+									})}
 								</span>
 							</div>
 						</div>
@@ -226,104 +276,86 @@ const Chef = () => {
 			</div>
 
 			{/* Stats */}
-			<div className="container-fluid px-4 py-2 border-bottom border-secondary">
-				<div className="row gx-4">
-					<div className="col-md-4 d-flex align-items-center">
-						<div className="rounded-circle bg-primary bg-opacity-25 p-2 me-3 text-center">
-							<i className="bi bi-receipt text-primary fs-4"></i>
+			<div className="container-fluid px-3 py-2 border-bottom border-secondary">
+				<div className="row gx-3">
+					<div className="col-md-4 d-flex align-items-center mb-md-0 mb-2">
+						<div className="rounded-circle bg-primary bg-opacity-25 p-2 me-2 text-center" style={{ width: "40px", height: "40px" }}>
+							<i className="bi bi-receipt text-primary fs-5"></i>
 						</div>
 						<div>
-							<div className="text-secondary small">Tổng đơn đang chờ</div>
-							<div className="fs-4 fw-bold">{totalPendingOrders}</div>
+							
+								<div className="text-secondary small">Tổng đơn đang chờ</div>
+								<div className="fs-5 fw-bold">{totalPendingOrders}</div>
 						</div>
 					</div>
-					<div className="col-md-4 d-flex align-items-center">
-						<div className="rounded-circle bg-warning bg-opacity-25 p-2 me-3 text-center">
-							<i className="bi bi-fire text-warning fs-4"></i>
+					<div className="col-md-4 d-flex align-items-center mb-md-0 mb-2">
+						<div className="rounded-circle bg-warning bg-opacity-25 p-2 me-2 text-center" style={{ width: "40px", height: "40px" }}>
+							<i className="bi bi-fire text-warning fs-5"></i>
 						</div>
 						<div>
 							<div className="text-secondary small">Món cần chế biến</div>
-							<div className="fs-4 fw-bold">{totalPendingItems}</div>
+							<div className="fs-5 fw-bold">{totalPendingItems}</div>
 						</div>
 					</div>
 					<div className="col-md-4 d-flex align-items-center">
-						<div className="rounded-circle bg-success bg-opacity-25 p-2 me-3 text-center">
-							<i className="bi bi-check-circle text-success fs-4"></i>
+						<div className="rounded-circle bg-success bg-opacity-25 p-2 me-2 text-center" style={{ width: "40px", height: "40px" }}>
+							<i className="bi bi-check-circle text-success fs-5"></i>
 						</div>
 						<div>
 							<div className="text-secondary small">Món đã hoàn thành</div>
-							<div className="fs-4 fw-bold">{totalCompletedItems}</div>
+							<div className="fs-5 fw-bold">{totalCompletedItems}</div>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			{/* Main Content - Grid Layout */}
+			{/* Main Content - Grid Layout with white background */}
 			<div className="container-fluid p-2">
 				{/* Loading State */}
 				{loading && (
-					<div className="text-center my-5">
+					<div className="text-center my-4">
 						<div className="spinner-border text-primary" role="status">
 							<span className="visually-hidden">Đang tải...</span>
 						</div>
-						<p className="mt-3 text-light">Đang tải danh sách đơn hàng...</p>
+						<p className="mt-2 text-dark">Đang tải danh sách đơn hàng...</p>
 					</div>
 				)}
 
 				{/* No Orders State */}
 				{!loading && orders.length === 0 && (
-					<div className="text-center my-5 py-5">
+					<div className="text-center my-4 py-4">
 						<i
-							className="bi bi-emoji-smile text-light"
-							style={{ fontSize: "4rem" }}
+							className="bi bi-emoji-smile text-dark"
+							style={{ fontSize: "3rem" }}
 						></i>
-						<h3 className="mt-4 text-light">Không có đơn hàng nào đang chờ</h3>
-						<p className="text-light">Nhà bếp đã hoàn thành tất cả món ăn</p>
+						<h3 className="mt-3 text-dark">Không có đơn hàng nào đang chờ</h3>
+						<p className="text-dark">Nhà bếp đã hoàn thành tất cả món ăn</p>
 					</div>
 				)}
 
-				{/* Tables Grid */}
+				{/* Tables Grid - Changed to white background */}
 				{!loading && orders.length > 0 && (
-					<div className="row g-3">
+					<div className="row g-2">
 						{Object.keys(ordersByTable).map((tableNum) => {
 							const tableOrders = ordersByTable[tableNum];
-							const { pendingItems, completedItems } =
-								getTableFoodItems(tableOrders);
+							const { pendingItems, completedItems } = getTableFoodItems(tableOrders);
 							const hasPendingItems = pendingItems.length > 0;
-
-							// Sort pending items by category and priority
-							pendingItems.sort((a, b) => {
-								const categoryOrder = {
-									"Main Course": 1,
-									Appetizer: 2,
-									Other: 3,
-								};
-								const catA =
-									categoryOrder[a.category] || categoryOrder["Other"];
-								const catB =
-									categoryOrder[b.category] || categoryOrder["Other"];
-								if (catA !== catB) return catA - catB;
-								return new Date(a.timestamp) - new Date(b.timestamp);
-							});
 
 							return (
 								<div className="col-lg-4 col-xl-3" key={tableNum}>
-									<div className="card bg-dark border border-secondary h-100">
-										<div className="card-header bg-dark d-flex justify-content-between align-items-center py-2">
-											<div className="d-flex align-items-center">
-												<span className="badge bg-dark border border-light text-light p-2 fs-6 me-2">
-													Bàn {tableNum}
-												</span>
-												<span
-													className={`badge ${
-														hasPendingItems ? "bg-danger" : "bg-success"
+									<div className="card bg-white border border-secondary h-100">
+										<div className="card-header bg-white d-flex align-items-center py-2 border-secondary">
+											<span className="badge bg-primary text-light p-2 fs-6 me-2">
+												Bàn {tableNum}
+											</span>
+											<span
+												className={`badge ${hasPendingItems ? "bg-danger" : "bg-success"
 													}`}
-												>
-													{hasPendingItems
-														? `${pendingItems.length} món chờ`
-														: "Hoàn thành"}
-												</span>
-											</div>
+											>
+												{hasPendingItems
+													? `${pendingItems.length} món chờ`
+													: "Hoàn thành"}
+											</span>
 										</div>
 
 										<div className="card-body p-0">
@@ -332,7 +364,9 @@ const Chef = () => {
 												{pendingItems.map((item) => (
 													<div
 														key={`${item.orderId}-${item.id}`}
-														className="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center py-2 px-3 text-light"
+														className="list-group-item bg-white border-secondary py-2 px-3 text-dark"
+														style={{ cursor: "pointer" }}
+														onClick={() => toggleItemStatus(item.orderId, item.id)}
 													>
 														<div className="d-flex align-items-center">
 															<span
@@ -345,32 +379,34 @@ const Chef = () => {
 															>
 																{item.quantity}
 															</span>
-															<span className="fw-bold">{item.name}</span>
-														</div>
-														<div className="d-flex align-items-center">
-															<span className="badge bg-secondary me-2">
-																{item.category === "Main Course" ? (
-																	<>
-																		<i className="bi bi-egg-fried me-1"></i>Main
-																	</>
-																) : item.category === "Appetizer" ? (
-																	<>
-																		<i className="bi bi-cup-straw me-1"></i>App
-																	</>
-																) : (
-																	<>
-																		<i className="bi bi-cake me-1"></i>Other
-																	</>
-																)}
-															</span>
-															<span
-																className={`badge ${getPriorityClass(
-																	item.timestamp
-																)}`}
-															>
-																<i className="bi bi-clock me-1"></i>
-																{getTimeSince(item.timestamp)}
-															</span>
+															<div className="flex-grow-1">
+																<div className="fw-bold">{item.name}</div>
+																<div className="d-flex flex-wrap mt-1">
+																	<span className="badge bg-secondary me-2">
+																		{item.category === "Main Course" ? (
+																			<>
+																				<i className="bi bi-egg-fried me-1"></i>Main
+																			</>
+																		) : item.category === "Appetizer" ? (
+																			<>
+																				<i className="bi bi-cup-straw me-1"></i>App
+																			</>
+																		) : item.category === "Drink" ? (
+																			<>
+																				<i className="bi bi-cup me-1"></i>Drink
+																			</>
+																		) : (
+																			<>
+																				<i className="bi bi-cake me-1"></i>Other
+																			</>
+																		)}
+																	</span>
+																	<span className={`badge ${getTimeClass(item.timestamp)}`}>
+																		<i className="bi bi-clock me-1"></i>
+																		{getTimeSince(item.timestamp)} trước
+																	</span>
+																</div>
+															</div>
 														</div>
 													</div>
 												))}
@@ -379,7 +415,9 @@ const Chef = () => {
 												{completedItems.map((item) => (
 													<div
 														key={`${item.orderId}-${item.id}`}
-														className="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center py-2 px-3 text-secondary"
+														className="list-group-item bg-white border-secondary py-2 px-3 text-secondary"
+														style={{ cursor: "pointer" }}
+														onClick={() => toggleItemStatus(item.orderId, item.id)}
 													>
 														<div className="d-flex align-items-center">
 															<span
@@ -392,15 +430,13 @@ const Chef = () => {
 															>
 																{item.quantity}
 															</span>
-															<span className="text-decoration-line-through">
-																{item.name}
-															</span>
-														</div>
-														<div className="d-flex align-items-center">
-															<span className="badge bg-success">
-																<i className="bi bi-check-circle me-1"></i>Hoàn
-																thành
-															</span>
+															<div className="flex-grow-1">
+																<div className="text-decoration-line-through">{item.name}</div>
+																<span className="badge bg-success mt-1">
+																	<i className="bi bi-check-circle me-1"></i>Hoàn
+																	thành
+																</span>
+															</div>
 														</div>
 													</div>
 												))}
@@ -414,16 +450,16 @@ const Chef = () => {
 				)}
 			</div>
 
-			{/* Live Connection Indicator */}
-			<div className="position-fixed bottom-0 end-0 p-3">
-				<div className="d-flex align-items-center bg-dark border border-secondary rounded p-2">
+			{/* Live Connection Indicator - Changed to light background */}
+			<div className="position-fixed bottom-0 end-0 p-2">
+				<div className="d-flex align-items-center bg-white border border-secondary rounded p-2">
 					<div
 						className="spinner-grow spinner-grow-sm text-success me-2"
 						role="status"
 					>
 						<span className="visually-hidden">Live...</span>
 					</div>
-					<span className="text-light small">Kết nối trực tiếp</span>
+					<span className="text-dark small">Kết nối trực tiếp</span>
 				</div>
 			</div>
 		</div>
