@@ -53,6 +53,15 @@ let HandleGetAllOrderDetail = async (req, res) => {
 	});
 };
 
+let HandleGetAllOrderPending = async (req, res) => {
+	let order = await apiService.GetOrderPending();
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		order: order,
+	});
+};
+
 let HandleGetAllReservation = async (req, res) => {
 	let id = req.query.id;
 	if (!id) {
@@ -112,8 +121,8 @@ let HandleCreateNewOrder = async (req, res) => {
 	}
 	let result = await apiService.CreateOrder(data);
 	return res.status(200).json({
-		errCode: result.errCode,
-		errMessage: result.errMessage,
+		errCode: 0,
+		errMessage: "OK",
 		order: result.order,
 	});
 };
@@ -336,6 +345,7 @@ let handleCallBackZaloPay = async (req, res) => {
 };
 module.exports = {
 	HandleGetAllTable,
+	HandleGetAllOrderPending,
 	HandleCreateNewCustomer,
 	HandleCheckCustomer,
 	HandleCreateNewOrder,

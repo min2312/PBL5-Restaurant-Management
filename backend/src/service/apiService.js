@@ -47,6 +47,10 @@ let GetAllOrder = (orderid) => {
 							model: db.Table,
 							attributes: ["id", "tableNumber"],
 						},
+						{
+							model: db.Customer,
+							attributes: ["id", "name", "phone"],
+						},
 					],
 				});
 			}
@@ -62,9 +66,57 @@ let GetAllOrder = (orderid) => {
 							model: db.Table,
 							attributes: ["id", "tableNumber"],
 						},
+						{
+							model: db.Customer,
+							attributes: ["id", "name", "phone"],
+						},
 					],
 				});
 			}
+			resolve(orders);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let GetOrderPending = () => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let orders = await db.Order.findAll({
+				where: { status: "PENDING" },
+				include: [
+					{
+						model: db.User,
+						attributes: ["id", "fullName", "email", "role"],
+					},
+					{
+						model: db.Customer,
+						attributes: ["id", "name", "phone"],
+					},
+					{
+						model: db.Table,
+						attributes: ["id", "tableNumber"],
+					},
+					{
+						model: db.OrderDetail,
+						attributes: [
+							"id",
+							"dishId",
+							"quantity",
+							"status",
+							"orderSession",
+							"createdAt",
+						],
+						include: [
+							{
+								model: db.Dish,
+								attributes: ["name", "Category"],
+							},
+						],
+					},
+				],
+			});
 			resolve(orders);
 		} catch (e) {
 			reject(e);
@@ -396,6 +448,10 @@ let CreateOrder = (data) => {
 							model: db.Table,
 							attributes: ["id", "tableNumber"],
 						},
+						{
+							model: db.Customer,
+							attributes: ["id", "name", "phone"],
+						},
 					],
 				});
 
@@ -464,7 +520,7 @@ let CreateOrderDetail = (orderId, dishList) => {
 			let createdItems = await db.OrderDetail.bulkCreate(dataToCreate);
 
 			let findNewOrderDetail = await db.OrderDetail.findAll({
-				where: { orderSession: newSession },
+				where: { orderSession: newSession, orderId: orderId },
 				include: [
 					{
 						model: db.Order,
@@ -862,4 +918,5 @@ module.exports = {
 	checkZaloPayOrderStatus,
 	callbackZaloPayOrder,
 	updateCustomerDiscount,
+	GetOrderPending,
 };

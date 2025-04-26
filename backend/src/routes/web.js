@@ -18,6 +18,10 @@ let initWebRoutes = (app) => {
 	router.get("/api/get-invoice", apiController.HandleGetInvoice);
 	router.get("/api/get-all-orderDetail", apiController.HandleGetAllOrderDetail);
 	router.get("/api/get-all-reservation", apiController.HandleGetAllReservation);
+	router.get(
+		"/api/get-all-orderPending",
+		apiController.HandleGetAllOrderPending
+	);
 	// router.get("/api/get-all-slot", apiController.HandleGetAllSlot);
 	// router.get("/api/get-info-car", userController.HandleGetInfoCar);
 	router.get("/api/getAllDish", apiController.HandleGetAllDish);
