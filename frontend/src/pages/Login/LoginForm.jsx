@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 // import { FaUser, FaLock } from "react-icons/fa";
 import "../Login/LoginForm.css";
-import { useHistory } from "react-router-dom/cjs/react-router-dom.min";
+import { useHistory, Link } from "react-router-dom/cjs/react-router-dom.min";
 import { UserContext } from "../../Context/UserProvider";
 import { toast } from "react-toastify";
 import { LoginUser } from "../../services/userService";
@@ -104,6 +104,14 @@ const LoginForm = () => {
 					/>
 					<i className="bi bi-lock icon"></i>
 				</div>
+
+				{/* Add forgot password link */}
+				<div className="remember-forgot">
+					<Link to="/reset-password" className="forgot-password">
+						Forgot Password?
+					</Link>
+				</div>
+
 				<button onClick={HandleLogin} type="sumbit">
 					Login
 				</button>

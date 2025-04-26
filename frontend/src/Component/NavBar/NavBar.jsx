@@ -27,8 +27,13 @@ const NavBar = () => {
 		}
 	};
 
+	const ChangePassword = () => {
+		history.push("/reset-password");
+	};
+
 	// Don't render navbar on these paths
 	if (
+		location.pathname === "/reset-password" ||
 		location.pathname === "/login_admin" ||
 		location.pathname === "/login" ||
 		location.pathname === "/register" ||
@@ -81,7 +86,7 @@ const NavBar = () => {
 									className="custom-dropdown"
 									id="user-dropdown"
 								>
-									<NavDropdown.Item className="py-2">
+									<NavDropdown.Item className="py-2" onClick={ChangePassword}>
 										<i className="bi bi-key me-2"></i>Change Password
 									</NavDropdown.Item>
 									<NavDropdown.Divider />

@@ -2,9 +2,7 @@ import axios from "../setup/axios";
 const LoginUser = (data) => {
 	return axios
 		.post("/api/login", data)
-		.then((response) => {
-			return response;
-		})
+		.then((response) => response)
 		.catch((error) => {
 			console.error(error);
 		});
@@ -13,9 +11,7 @@ const LoginUser = (data) => {
 const CreateNewUser = (data) => {
 	return axios
 		.post("/api/create-new-user", data)
-		.then((response) => {
-			return response;
-		})
+		.then((response) => response)
 		.catch((error) => {
 			console.error(error);
 		});
@@ -23,9 +19,7 @@ const CreateNewUser = (data) => {
 const GetAllUser = (InputId) => {
 	return axios
 		.get(`/api/get-all-user?id=${InputId}`)
-		.then((response) => {
-			return response;
-		})
+		.then((response) => response)
 		.catch((err) => {
 			console.log(err);
 		});
@@ -42,6 +36,32 @@ const EditUserService = (user_edit) => {
 const DeleteUser = (idUser) => {
 	return axios.delete("/api/delete-user", { data: { id: idUser } });
 };
+const resetPassword = (email, newPassword) => {
+	return axios
+		.post("/api/reset-password", { email, newPassword })
+		.then((response) => response)
+		.catch((error) => {
+			console.error(error);
+		});
+};
+const sendResetOTP = async (email) => {
+	try {
+		const response = await axios.post("/api/reset-otp/send", { email });
+		return response;
+	} catch (error) {
+		console.error(error);
+	}
+};
+
+const verifyOTP = async (email, otp) => {
+	try {
+		const response = await axios.post("/api/reset-otp/verify", { email, otp });
+		return response;
+	} catch (error) {
+		console.error(error);
+	}
+};
+
 export {
 	LoginUser,
 	CreateNewUser,
@@ -50,4 +70,7 @@ export {
 	LogOutUser,
 	EditUserService,
 	DeleteUser,
+	resetPassword,
+	sendResetOTP,
+	verifyOTP,
 };
