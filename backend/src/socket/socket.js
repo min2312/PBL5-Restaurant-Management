@@ -21,9 +21,20 @@ const initSocket = (server) => {
 		socket.on("updateTable", async (data) => {
 			await handleUpdateTable(data);
 		});
+
 		socket.on("updateOrder", (data) => {
 			io.emit("orderUpdated", data);
 		});
+
+		socket.on("sendOrder", (data) => {
+			io.emit("receiveOrder", data);
+		});
+
+		// Add handler for order status updates
+		socket.on("orderStatusUpdate", (data) => {
+			io.emit("orderStatusUpdate", data);
+		});
+
 		socket.on("disconnect", (reason) => {
 			console.log(`Client disconnected: ${socket.id}, Reason: ${reason}`);
 		});
