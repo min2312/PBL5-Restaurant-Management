@@ -31,7 +31,6 @@ const OrderMenu = () => {
 	const [orderStatus, setOrderStatus] = useState({});
 	const [completedOrders, setCompletedOrders] = useState([]);
 	const [currentOrder, setCurrentOrder] = useState({});
-
 	const GetDish = async () => {
 		try {
 			let dishID = "ALL";
@@ -184,7 +183,6 @@ const OrderMenu = () => {
 		const discount = Math.min(appliedPoints * 100, rawTotal);
 		return rawTotal - discount;
 	};
-
 	// Update handleSubmitOrder to store the applied discount with each order
 	const handleSubmitOrder = async () => {
 		if (Object.keys(orderItems).length === 0) {
@@ -199,6 +197,11 @@ const OrderMenu = () => {
 			});
 
 			if (response && response.errCode === 0) {
+				let data = {
+					order: order,
+					orderDetail: response.orderDetail,
+				};
+				socket.emit("sendOrder", data);
 				const fetchedOrderItems = response.orderDetail
 					.filter((order) => order.Order.status === "PENDING")
 					.reduce((acc, order) => {
@@ -238,9 +241,14 @@ const OrderMenu = () => {
 	};
 
 	const handleItemReady = async (orderId, itemId) => {
-		const dishId = completedOrders[orderId].items[itemId].id;
+		const dishId =
+			completedOrders[orderId].items[itemId].dishId ||
+			completedOrders[orderId].items[itemId].id;
 		const orderSession = completedOrders[orderId].items[itemId].orderSession;
 		const idOrder = order.id;
+		const dishName = completedOrders[orderId].items[itemId].name;
+		const currentStatus = completedOrders[orderId].items[itemId].status;
+		const newStatus = !currentStatus; // Toggle the status
 
 		try {
 			const response = await UpdateOrderDetail({
@@ -248,7 +256,20 @@ const OrderMenu = () => {
 				orderSession,
 				idOrder,
 			});
+
 			if (response && response.errCode === 0) {
+				// Emit socket event with status update information
+				if (socket) {
+					socket.emit("orderStatusUpdate", {
+						orderId: idOrder,
+						dishId: dishId,
+						dishName: dishName,
+						orderSession: orderSession,
+						status: newStatus,
+						orderDetailId: completedOrders[orderId].items[itemId].id, // Include the orderDetail ID if available
+					});
+				}
+
 				setCompletedOrders((prev) => {
 					const updated = [...prev];
 					const targetOrder = { ...updated[orderId] };
@@ -256,7 +277,7 @@ const OrderMenu = () => {
 						...targetOrder.items,
 						[itemId]: {
 							...targetOrder.items[itemId],
-							status: !targetOrder.items[itemId].status,
+							status: newStatus,
 						},
 					};
 					updated[orderId] = {
