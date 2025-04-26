@@ -5,6 +5,11 @@ import { checkUserJWT, CreateJWT } from "../middleware/JWT_Action";
 import passport from "passport";
 import apiController from "../controllers/apiController";
 import uploadCloud from "../middleware/Cloudinary_Multer";
+import {
+	sendResetOTP,
+	verifyResetOTP,
+	resetPassword,
+} from "../controllers/otpController.js";
 let router = express.Router();
 
 let initWebRoutes = (app) => {
@@ -124,6 +129,10 @@ let initWebRoutes = (app) => {
 	// 		}
 	// 	}
 	// );
+
+	router.post("/api/reset-otp/send", sendResetOTP);
+	router.post("/api/reset-otp/verify", verifyResetOTP);
+	router.post("/api/reset-password", resetPassword);
 
 	return app.use("/", router);
 };

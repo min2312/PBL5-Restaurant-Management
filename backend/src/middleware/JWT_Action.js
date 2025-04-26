@@ -15,6 +15,9 @@ const nonSecurePaths = [
 	"/api/checkTime",
 	"/google/redirect",
 	"/auth/google",
+	"/api/reset-otp/send",
+	"/api/reset-otp/verify",
+	"/api/reset-password",
 ];
 
 const CreateJWT = (payload) => {

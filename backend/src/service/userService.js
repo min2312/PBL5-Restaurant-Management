@@ -263,6 +263,24 @@ let hashUserPassword = (password) => {
 		}
 	});
 };
+
+let resetPassword = (email, newPassword) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let user = await db.User.findOne({ where: { email } });
+			if (!user) {
+				resolve({ errCode: 1, errMessage: "User not found" });
+			} else {
+				let hashPassword = await bcrypt.hashSync(newPassword, salt);
+				await db.User.update({ password: hashPassword }, { where: { email } });
+				resolve({ errCode: 0, message: "Password reset successful" });
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 module.exports = {
 	HandleUserLogin: HandleUserLogin,
 	getAllUser: getAllUser,
@@ -271,4 +289,6 @@ module.exports = {
 	updateUser: updateUser,
 	getInfoCar: getInfoCar,
 	upsertUserSocial: upsertUserSocial,
+	resetPassword: resetPassword,
+	CheckUserEmail: CheckUserEmail, // new export for service-level email checking
 };
