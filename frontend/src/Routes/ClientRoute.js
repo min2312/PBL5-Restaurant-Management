@@ -10,12 +10,14 @@ import LoginAdmin from "../pages/Login/LoginAdmin";
 import Waiter from "../pages/Waiter/Waiter";
 import OrderMenu from "../pages/OrderMenu/OrderMenu";
 import Chef from "../pages/Chef/Chef";
+import ResetPassword from "../pages/Login/ResetPassword";
 
 const ClientRoute = () => {
 	return (
 		<div>
 			<Switch>
 				<Route path="/login" component={LoginForm} />
+				<Route path="/reset-password" component={ResetPassword} />
 				<Route path="/login_admin" component={LoginAdmin} />
 				<PrivateRoutesRole
 					path="/receptionist"
