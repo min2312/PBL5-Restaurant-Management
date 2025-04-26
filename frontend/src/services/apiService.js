@@ -22,6 +22,17 @@ const GetAllOrder = (InputId) => {
 		});
 };
 
+const GetAllOrderPeding = () => {
+	return axios
+		.get("/api/get-all-orderPending")
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
 const GetAllReservation = (InputId) => {
 	return axios
 		.get(`/api/get-all-reservation?id=${InputId}`)
@@ -181,6 +192,7 @@ export {
 	CreateNewOrder,
 	CreateNewOrderDetail,
 	GetAllOrder,
+	GetAllOrderPeding,
 	GetAllReservation,
 	GetAllOrderDetail,
 	UpdateOrderDetail,
