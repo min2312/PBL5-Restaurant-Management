@@ -19,7 +19,7 @@ const sendOtpEmail = async (email, otp) => {
 	});
 
 	let mailOptions = {
-		from: process.env.EMAIL_USER,
+		from: `Bot App <${process.env.EMAIL_USER}>`,
 		to: email,
 		subject: "Your OTP for Password Reset",
 		html: `<div style="font-family: Arial, sans-serif; text-align: center;">
