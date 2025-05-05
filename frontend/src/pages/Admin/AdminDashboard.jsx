@@ -5,7 +5,7 @@ import CreateUser from "./CreateUser";
 import ManageUsers from "./ManageUsers";
 import ManageTables from "./ManageTables";
 import ManageOrders from "./ManageOrders";
-import ManageReservations from "./ManageReservations";
+import ManageInvoices from "./ManageInvoices";
 import "./AdminDashboard.css";
 import { UserContext } from "../../Context/UserProvider";
 import { toast } from "react-toastify";
@@ -38,7 +38,7 @@ const AdminDashboard = () => {
 			case "manage-orders":
 				return <ManageOrders />;
 			case "manage-reservations":
-				return <ManageReservations />;
+				return <ManageInvoices />;
 			default:
 				return <Dashboard />;
 		}
@@ -89,7 +89,7 @@ const AdminDashboard = () => {
 							className={activeView === "manage-reservations" ? "active" : ""}
 							onClick={() => setActiveView("manage-reservations")}
 						>
-							Manage Reservations
+							Manage Invoices
 						</Nav.Link>
 
 						{/* Dropdown Menu */}
