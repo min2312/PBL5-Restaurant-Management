@@ -1,4 +1,7 @@
-body {
+/* Reset and base styles for admin area only */
+.admin-area {
+	/* Apply base styles only to admin area */
+	color: inherit;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
 		"Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
 		sans-serif;
@@ -7,38 +10,38 @@ body {
 	background-color: #f8f9fa;
 }
 
-.container {
+.admin-area .container {
 	margin-top: 20px;
 }
 
-.container-fluid {
-	display: flex;
+.admin-area .container-fluid {
+	/* display: flex; */
 	flex-wrap: nowrap;
 }
 
-.my-4 {
+.admin-area .my-4 {
 	margin-bottom: 20px;
 }
 
-.modal-body {
+.admin-area .modal-body {
 	padding: 20px;
 }
 
-.modal-footer {
+.admin-area .modal-footer {
 	display: flex;
 	justify-content: space-between;
 }
 
-.card {
+.admin-area .card {
 	cursor: pointer;
 	transition: transform 0.2s;
 }
 
-.card:hover {
+.admin-area .card:hover {
 	transform: scale(1.05);
 }
 
-.sidebar {
+.admin-area .sidebar {
 	background-color: #343a40;
 	height: 100vh;
 	padding: 20px;
@@ -49,44 +52,617 @@ body {
 	width: 200px;
 }
 
-.sidebar .nav-link {
+.admin-area .sidebar .nav-link {
 	color: #adb5bd;
 	font-weight: bold;
 	margin-bottom: 10px;
 }
 
-.sidebar .nav-link:hover {
+.admin-area .sidebar .nav-link:hover {
 	color: #fff;
 }
 
-.sidebar .nav-link.active {
+.admin-area .sidebar .nav-link.active {
 	color: #fff;
 	background-color: #007bff;
 	border-radius: 5px;
 }
 
-.content {
+.admin-area .content {
 	margin-left: 200px;
 	padding: 20px;
 	width: calc(100% - 200px);
 }
 
-.card-primary {
+.admin-area .card-primary {
 	background-color: #007bff;
 	color: #fff;
 }
 
-.card-warning {
+.admin-area .card-warning {
 	background-color: #ffc107;
 	color: #fff;
 }
 
-.card-success {
+.admin-area .card-success {
 	background-color: #28a745;
 	color: #fff;
 }
 
-.card-danger {
+.admin-area .card-danger {
 	background-color: #dc3545;
 	color: #fff;
+}
+
+/* Admin Dashboard Layout */
+.admin-dashboard {
+	display: flex;
+	height: 100vh;
+	width: 100%;
+	overflow: hidden;
+	background-color: #f8f9fc;
+}
+
+/* Sidebar Styles */
+.admin-area .sidebar {
+	background: linear-gradient(180deg, #1e3a8a 0%, #2563eb 100%);
+	color: #fff;
+	width: 260px;
+	min-width: 260px; /* Prevent sidebar from shrinking */
+	height: 100%;
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 1050;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-direction: column;
+	box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+	transition: width 0.3s ease, transform 0.3s ease;
+}
+
+.admin-area .sidebar.collapsed {
+	width: 70px;
+	min-width: 90px;
+}
+
+.admin-area .sidebar-header {
+	padding: 1.5rem 1rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	height: 70px;
+}
+
+.admin-area .sidebar-header h3 {
+	margin: 0;
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: white;
+	display: flex;
+	align-items: center;
+}
+
+.admin-area .brand-icon {
+	font-size: 1.5rem;
+	margin-right: 0.5rem;
+}
+
+.admin-area .toggle-btn {
+	background: transparent;
+	border: none;
+	color: rgba(255, 255, 255, 0.8);
+	cursor: pointer;
+	font-size: 1.25rem;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.admin-area .toggle-btn:hover {
+	color: #fff;
+}
+
+.admin-area .sidebar-menu {
+	padding: 1rem 0;
+	flex: 1;
+	overflow-y: auto;
+}
+
+.admin-area .sidebar-menu .nav-link {
+	color: rgba(255, 255, 255, 0.7);
+	padding: 0.75rem 1.5rem;
+	display: flex;
+	align-items: center;
+	border-left: 4px solid transparent;
+	transition: all 0.2s ease;
+	margin: 0.25rem 0;
+	font-size: 1rem; /* Increased font size */
+	white-space: nowrap;
+}
+
+.admin-area .sidebar-menu .nav-link:hover {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: #fff;
+}
+
+.admin-area .sidebar-menu .nav-link.active {
+	border-left-color: #38bdf8;
+	background-color: rgba(255, 255, 255, 0.1);
+	color: #fff;
+}
+
+.admin-area .sidebar-menu .nav-link svg {
+	margin-right: 0.75rem;
+	font-size: 1.1rem;
+	flex-shrink: 0;
+	min-width: 1.1rem; /* Ensure icons have consistent width */
+}
+
+/* When sidebar is collapsed */
+.admin-area .sidebar.collapsed .sidebar-menu .nav-link {
+	padding: 0.75rem;
+	justify-content: center;
+}
+
+.admin-area .sidebar.collapsed .sidebar-menu .nav-link svg {
+	margin-right: 0; /* Remove margin when collapsed */
+}
+
+.admin-area .sidebar-footer {
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	padding: 1rem;
+}
+
+/* User dropdown in sidebar */
+.admin-area .user-dropdown {
+	display: flex;
+	align-items: center;
+	background: transparent !important;
+	border: none !important;
+	color: #fff !important;
+	padding: 0.5rem 0 !important;
+	width: 100%;
+}
+
+.admin-area .user-dropdown::after {
+	display: none !important;
+}
+
+.admin-area .user-avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: rgba(255, 255, 255, 0.2);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: 0.75rem;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.admin-area .user-info {
+	flex: 1;
+	overflow: hidden;
+}
+
+.admin-area .user-info h6 {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.admin-area .user-info small {
+	color: rgba(255, 255, 255, 0.7);
+}
+
+/* Main Content Area */
+.admin-area .main-content {
+	flex: 1;
+	margin-left: 260px;
+	width: calc(100% - 260px);
+	transition: margin-left 0.3s ease, width 0.3s ease;
+	display: flex;
+	flex-direction: column;
+	overflow-x: hidden; /* Prevent horizontal scrollbar */
+}
+
+.admin-area .main-content.expanded {
+	margin-left: 70px;
+	width: calc(100% - 70px);
+}
+
+.admin-area .header {
+	background-color: #fff;
+	border-bottom: 1px solid #e5e7eb;
+	padding: 1rem 1.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	height: 70px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.admin-area .header h4 {
+	margin: 0;
+	color: #1e3a8a;
+	font-weight: 600;
+}
+
+.admin-area .content-wrapper {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 1.5rem;
+	min-width: 0; /* Prevent content from pushing out of container */
+	background-color: #f8f9fc;
+}
+
+/* Responsive design */
+@media (max-width: 991.98px) {
+	.admin-area .sidebar {
+		position: fixed;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		transition: transform 0.3s ease;
+		z-index: 1040;
+		transform: translateX(-260px);
+	}
+
+	.admin-area .sidebar.collapsed {
+		transform: translateX(0);
+		width: 260px;
+		min-width: 260px;
+	}
+
+	.admin-area .main-content {
+		margin-left: 0 !important;
+		width: 100%;
+	}
+
+	.admin-area .main-content.expanded {
+		margin-left: 0;
+		width: 100%;
+	}
+}
+
+/* Enhanced styling for tables */
+.admin-area .table {
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.admin-area .table thead th {
+	border-bottom-width: 1px;
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+	letter-spacing: 0.025em;
+}
+
+.admin-area .table-hover tbody tr:hover {
+	background-color: rgba(37, 99, 235, 0.05);
+}
+
+/* Card styling enhancements */
+.admin-area .card {
+	border: none;
+	border-radius: 10px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+	transition: transform 0.2s, box-shadow 0.2s;
+	overflow: hidden;
+	max-width: 100%;
+}
+
+.admin-area .card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.admin-area .card-header {
+	border-bottom: none;
+	background: linear-gradient(90deg, #1e3a8a, #2563eb);
+	color: white;
+	font-weight: 600;
+	padding: 1rem 1.25rem;
+}
+
+/* Button styling */
+.admin-area .btn {
+	font-weight: 500;
+	border-radius: 6px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	transition: all 0.15s ease;
+	text-transform: none;
+}
+
+.admin-area .btn-primary {
+	background-color: #2563eb;
+	border-color: #2563eb;
+}
+
+.admin-area .btn-primary:hover {
+	background-color: #1d4ed8;
+	border-color: #1d4ed8;
+}
+
+/* Form control styling */
+.admin-area .form-control,
+.admin-area .form-select {
+	border-radius: 6px;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid #d1d5db;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.admin-area .form-control:focus,
+.admin-area .form-select:focus {
+	border-color: #93c5fd;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* Modal styling */
+.admin-area .modal-content {
+	border: none;
+	border-radius: 10px;
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.admin-area .modal-header {
+	border-bottom: none;
+	padding: 1.25rem;
+}
+
+.admin-area .modal-footer {
+	border-top: none;
+	padding: 1.25rem;
+}
+
+/* Badge styling */
+.admin-area .badge {
+	padding: 0.35em 0.65em;
+	font-weight: 500;
+	border-radius: 6px;
+}
+
+/* Icon-button styling */
+.admin-area .btn-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.5rem;
+	border-radius: 6px;
+}
+
+/* Custom scrollbar */
+.admin-area ::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+.admin-area ::-webkit-scrollbar-track {
+	background: #f1f1f1;
+	border-radius: 10px;
+}
+
+.admin-area ::-webkit-scrollbar-thumb {
+	background: #c1c1c1;
+	border-radius: 10px;
+}
+
+.admin-area ::-webkit-scrollbar-thumb:hover {
+	background: #a8a8a8;
+}
+
+/* Search box specific styling */
+.admin-area .search-box {
+	position: relative;
+	width: 100%;
+}
+
+.admin-area .search-icon {
+	position: absolute;
+	left: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 10;
+	color: #6c757d;
+	pointer-events: none; /* Let clicks go through to the input */
+}
+
+.admin-area input.form-control {
+	padding-left: 35px; /* Make space for the search icon */
+	font-size: 0.95rem;
+}
+
+/* Fix search input in tables management */
+.admin-area .table-actions-container {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1rem;
+}
+
+.admin-area .table-actions-container .search-box {
+	width: 300px;
+	max-width: 100%;
+}
+
+/* Fix user dropdown in collapsed sidebar */
+.admin-area .sidebar.collapsed .user-dropdown {
+	padding: 0.5rem 0.5rem !important;
+}
+
+.admin-area .sidebar.collapsed .user-avatar {
+	margin-right: 0;
+	margin-left: -1.5rem;
+}
+
+/* Ensure icons are fully visible in collapsed mode */
+.admin-area .sidebar.collapsed .nav-link svg {
+	font-size: 1.25rem;
+	display: block;
+}
+
+/* Remove duplicate sidebar width definitions and enforce a fixed width with smooth toggle */
+.admin-area .sidebar {
+	width: 260px;
+	position: fixed;
+	top: 0;
+	left: 0;
+	height: 100%;
+	z-index: 1050; /* Ensures sidebar stays above content when needed */
+	transition: width 0.3s ease;
+}
+
+.admin-area .sidebar.collapsed {
+	width: 70px;
+}
+
+/* Adjust main content margin to avoid being hidden behind the fixed sidebar */
+.admin-area .admin-dashboard .main-content {
+	margin-left: 260px;
+	transition: margin-left 0.3s ease;
+}
+
+.admin-area .admin-dashboard .main-content.expanded {
+	margin-left: 70px;
+}
+
+/* Ensure sidebar menu links adjust correctly when collapsed */
+.admin-area .sidebar-menu .nav-link {
+	padding: 0.75rem 1.5rem;
+	transition: padding 0.3s ease;
+}
+
+.admin-area .sidebar.collapsed .sidebar-menu .nav-link {
+	padding: 0.75rem;
+	justify-content: center;
+}
+
+/* On small screens, show the full sidebar so that content isn’t blocked */
+@media (max-width: 991.98px) {
+	.admin-area .sidebar {
+		width: 260px;
+		transform: translateX(0);
+	}
+	.admin-area .admin-dashboard .main-content {
+		margin-left: 260px;
+	}
+}
+
+/* Dashboard specific styles to prevent conflicts */
+.admin-area .dashboard-container {
+	width: 100%;
+	max-width: 100%;
+	overflow-x: hidden;
+	padding: 1rem;
+}
+
+.admin-area .dashboard-container .row {
+	margin-right: 0;
+	margin-left: 0;
+}
+
+.admin-area .dashboard-container .container-fluid {
+	display: block;
+	width: 100%;
+	padding-right: 0;
+	padding-left: 0;
+	max-width: 100%;
+}
+
+/* Override any conflicting styles for tables inside dashboard */
+.admin-area .dashboard-container .table {
+	margin-bottom: 0;
+}
+
+.admin-area .dashboard-container .table thead th {
+	vertical-align: middle;
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+	letter-spacing: 0.025em;
+	color: #6c757d;
+	background-color: #f8f9fa;
+}
+
+.admin-area .dashboard-container .card {
+	border: none;
+	border-radius: 8px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
+	margin-bottom: 1.5rem;
+}
+
+/* Ensure content wrapper has proper padding */
+.admin-area .content-wrapper {
+	padding: 1.5rem;
+	flex: 1;
+	overflow-y: auto;
+	background-color: #f8f9fc;
+}
+
+/* Prevent container-fluid overrides in dashboard */
+.admin-area .dashboard-container .container-fluid {
+	display: block;
+	padding-right: 0;
+	padding-left: 0;
+}
+
+/* Tables and Cards */
+.admin-area .table-responsive {
+	width: 100%;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+/* Chart containers */
+.admin-area .dashboard-container .chart-container {
+	position: relative;
+	height: 100%;
+	width: 100%;
+	max-width: 100%;
+}
+
+/* Adjust buttons in dashboard */
+.admin-area .dashboard-container .btn-group {
+	white-space: nowrap;
+	overflow-x: auto;
+	max-width: 100%;
+}
+
+/* Fix for nested rows and columns */
+.admin-area .dashboard-container .row .col,
+.admin-area .dashboard-container .row [class*="col-"] {
+	padding-right: 0.75rem;
+	padding-left: 0.75rem;
+}
+
+/* Additional fixes for edge cases */
+@media (max-width: 576px) {
+	.admin-area .dashboard-container .card {
+		margin-right: -0.75rem;
+		margin-left: -0.75rem;
+		border-radius: 0;
+	}
+
+	.admin-area .dashboard-container .card-body {
+		padding: 1rem;
+	}
+}
+
+/* Fix overflow issues with ButtonGroup */
+.admin-area .dashboard-container .btn-group {
+	flex-wrap: wrap;
+}
+
+/* Ensure charts don't overflow */
+.admin-area .dashboard-container canvas {
+	max-width: 100%;
 }
