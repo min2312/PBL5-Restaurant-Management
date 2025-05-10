@@ -188,10 +188,13 @@ let updateUser = (data) => {
 				where: { id: data.id },
 			});
 			if (user) {
+				let hashPasswordFromBcrypt = await hashUserPassword(data.password);
 				await db.User.update(
 					{
 						fullName: data.fullName,
-						phone: data.phone,
+						email: data.email,
+						password: hashPasswordFromBcrypt,
+						role: data.role,
 					},
 					{
 						where: { id: data.id },

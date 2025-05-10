@@ -32,6 +32,110 @@ let GetAllTable = (tableid) => {
 	});
 };
 
+let CreateNewTable = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Table.findOne({
+				where: { tableNumber: data.tableNumber },
+			});
+			if (check) {
+				resolve({
+					errCode: 1,
+					errMessage: "The table number already exists",
+				});
+			} else {
+				let newTable = await db.Table.create({
+					id: data.tableNumber,
+					tableNumber: data.tableNumber,
+					status: data.status,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Create new table successfully",
+					table: newTable,
+				});
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let UpdateTable = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let duplicate = await db.Table.findOne({
+				where: { tableNumber: data.tableNumber },
+			});
+			if (duplicate && duplicate.id !== data.id) {
+				return resolve({
+					errCode: 1,
+					errMessage: "The table number already exists",
+				});
+			}
+			let check = await db.Table.findOne({
+				where: { id: data.id },
+			});
+			if (check) {
+				// Using a raw query to force update the primary key "id"
+				await db.sequelize.query(
+					"UPDATE `Tables` SET id = ?, tableNumber = ?, status = ? WHERE id = ?",
+					{
+						replacements: [
+							data.tableNumber,
+							data.tableNumber,
+							data.status,
+							data.id,
+						],
+					}
+				);
+				// Fetch the updated record using the new id value
+				let updatedTable = await db.Table.findOne({
+					where: { id: data.tableNumber },
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Update table successfully",
+					table: updatedTable,
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Table not found",
+				});
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let DeleteTable = (tableId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Table.findOne({
+				where: { id: tableId },
+			});
+			if (check) {
+				await db.Table.destroy({
+					where: { id: tableId },
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Delete table successfully",
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Table not found",
+				});
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 let GetAllOrder = (orderid) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -671,6 +775,29 @@ let GetInvoice = (id_table) => {
 	});
 };
 
+let GetAllInvoice = (invoiceId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let invoices = "";
+			if (invoiceId === "ALL") {
+				invoices = await db.Invoice.findAll();
+			}
+			if (invoiceId && invoiceId !== "ALL") {
+				invoices = await db.Invoice.findAll({
+					where: { id: invoiceId },
+				});
+			}
+			resolve({
+				errCode: 0,
+				errMessage: "Get all invoices successfully",
+				invoices: invoices,
+			});
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 let CreateDish = (data, fileImage) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -711,22 +838,139 @@ let CreateDish = (data, fileImage) => {
 	});
 };
 
+let EditDish = (data, fileImage) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Dish.findOne({
+				where: { id: data.id },
+			});
+			if (check) {
+				if (fileImage) {
+					const uploadPart = check.pic_link.split("/upload/")[1];
+					let parts = uploadPart.split("/");
+					if (parts[0].startsWith("v")) {
+						parts.shift();
+					}
+					const publicId = parts.join("/").split(".")[0];
+					await cloudinary.uploader.destroy(publicId);
+				}
+				await check.update({
+					name: data.name,
+					price: data.price,
+					Category: data.category,
+					pic_link: fileImage ? fileImage.path : check.pic_link,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Update dish successfully",
+					dish: check,
+				});
+			} else {
+				if (fileImage) {
+					await cloudinary.uploader.destroy(fileImage.filename);
+				}
+				resolve({
+					errCode: 1,
+					errMessage: "Dish not found",
+				});
+			}
+		} catch (e) {
+			if (fileImage) {
+				await cloudinary.uploader.destroy(fileImage.filename);
+			}
+			reject({
+				errCode: 1,
+				errMessage: "Error updating dish",
+			});
+		}
+	});
+};
+
+let DeleteDish = (dishId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Dish.findOne({
+				where: { id: dishId },
+			});
+			if (check) {
+				if (check.pic_link) {
+					const uploadPart = check.pic_link.split("/upload/")[1];
+					let parts = uploadPart.split("/");
+					if (parts[0].startsWith("v")) {
+						parts.shift();
+					}
+					const publicId = parts.join("/").split(".")[0];
+					await cloudinary.uploader.destroy(publicId);
+				}
+				await db.Dish.destroy({
+					where: { id: dishId },
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Delete dish successfully",
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Dish not found",
+				});
+			}
+		} catch (e) {
+			console.log(e);
+			reject({
+				errCode: 1,
+				errMessage: "Error deleting dish",
+			});
+		}
+	});
+};
+
 let GetAllDish = (dishId) => {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let dishes = "";
 			if (dishId === "ALL") {
 				dishes = await db.Dish.findAll({
-					attributes: ["id", "name", "price", "Category", "pic_link"],
+					attributes: [
+						"id",
+						"name",
+						"price",
+						"Category",
+						"pic_link",
+						"createdAt",
+						"updatedAt",
+					],
 				});
 			}
 			if (dishId && dishId !== "ALL") {
 				dishes = await db.Dish.findAll({
 					where: { id: dishId },
-					attributes: ["id", "name", "price", "Category", "pic_link"],
+					attributes: [
+						"id",
+						"name",
+						"price",
+						"Category",
+						"pic_link",
+						"createdAt",
+						"updatedAt",
+					],
 				});
 			}
 			resolve(dishes);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let GetAllCategory = () => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let categories = await db.Dish.findAll({
+				attributes: ["Category"],
+				group: ["Category"],
+			});
+			resolve(categories);
 		} catch (e) {
 			reject(e);
 		}
@@ -902,6 +1146,7 @@ module.exports = {
 	GetAllOrderDetail,
 	GetAllReservation,
 	GetAllDish,
+	GetAllCategory,
 	CreateNewCustomer,
 	CheckCustomer,
 	UpdateCustomer,
@@ -911,12 +1156,18 @@ module.exports = {
 	CreateOrderDetail,
 	updateOrderDetail,
 	CreateDish,
+	EditDish,
+	DeleteDish,
 	CreateInvoice,
 	GetInvoice,
+	GetAllInvoice,
 	PaymentMoMo,
 	createZaloPayOrder,
 	checkZaloPayOrderStatus,
 	callbackZaloPayOrder,
 	updateCustomerDiscount,
 	GetOrderPending,
+	CreateNewTable,
+	UpdateTable,
+	DeleteTable,
 };

@@ -125,12 +125,25 @@ let HandleGetInfoCar = async (req, res) => {
 	});
 };
 
+let HandleDeleteUser = async (req, res) => {
+	if (!req.body.id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameters!",
+		});
+	}
+	let message = await userService.DeleteUser(req.body.id);
+	return res.status(200).json({
+		...message,
+	});
+};
+
 module.exports = {
 	HandleLogin: HandleLogin,
 	HandleGetAllUser: HandleGetAllUser,
 	HandleCreateNewUser: HandleCreateNewUser,
 	HandleEditUser: HandleEditUser,
-	// HandleDeleteUser: HandleDeleteUser,
+	HandleDeleteUser: HandleDeleteUser,
 	getUserAccount,
 	HandleLogOut: HandleLogOut,
 	HandleGetInfoCar: HandleGetInfoCar,

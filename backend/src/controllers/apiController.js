@@ -19,6 +19,53 @@ let HandleGetAllTable = async (req, res) => {
 	});
 };
 
+let HandleCreateTable = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.CreateNewTable(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		table: result.table,
+	});
+};
+
+let HandleUpdateTable = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.UpdateTable(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		table: result.table,
+	});
+};
+
+let HandleDeleteTable = async (req, res) => {
+	let id = req.body.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.DeleteTable(id);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+	});
+};
+
 let HandleGetAllOrder = async (req, res) => {
 	let id = req.query.id;
 	if (!id) {
@@ -183,6 +230,58 @@ let HandleCreateDish = async (req, res) => {
 	}
 };
 
+let HandleEditDish = async (req, res) => {
+	let data = req.body;
+	let fileImage = req.file;
+	let urlImage = data.url_image;
+	if (!data || Object.keys(data).length === 0) {
+		if (fileImage) {
+			await cloudinary.uploader.destroy(fileImage.filename);
+		}
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	try {
+		if (urlImage) {
+			const uploadResponse = await cloudinary.uploader.upload(urlImage, {
+				folder: "Restaurant",
+			});
+			data.image = uploadResponse.secure_url;
+		}
+		let result = await apiService.EditDish(data, fileImage);
+		return res.status(200).json({
+			errCode: result.errCode,
+			errMessage: result.errMessage,
+			dish: result.dish,
+		});
+	} catch (error) {
+		if (fileImage) {
+			await cloudinary.uploader.destroy(fileImage.filename);
+		}
+		return res.status(500).json({
+			errCode: 1,
+			errMessage: "Error creating dish",
+		});
+	}
+};
+
+let HandleDeleteDish = async (req, res) => {
+	let id = req.body.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.DeleteDish(id);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+	});
+};
+
 let HandleGetAllDish = async (req, res) => {
 	let id = req.query.id;
 	if (!id) {
@@ -197,6 +296,15 @@ let HandleGetAllDish = async (req, res) => {
 		errCode: 0,
 		errMessage: "OK",
 		dish: dish,
+	});
+};
+
+let HandleGetAllCategory = async (req, res) => {
+	let categories = await apiService.GetAllCategory();
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		categories: categories,
 	});
 };
 
@@ -267,6 +375,22 @@ let HandleGetInvoice = async (req, res) => {
 		errMessage: invoice.errMessage,
 		invoice: invoice.invoice,
 		total: invoice.total,
+	});
+};
+let HandleGetAllInvoice = async (req, res) => {
+	let id = req.query.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+			invoice: [],
+		});
+	}
+	let invoice = await apiService.GetAllInvoice(id);
+	return res.status(200).json({
+		errCode: invoice.errCode,
+		errMessage: invoice.errMessage,
+		invoice: invoice.invoices,
 	});
 };
 
@@ -345,6 +469,9 @@ let handleCallBackZaloPay = async (req, res) => {
 };
 module.exports = {
 	HandleGetAllTable,
+	HandleCreateTable,
+	HandleUpdateTable,
+	HandleDeleteTable,
 	HandleGetAllOrderPending,
 	HandleCreateNewCustomer,
 	HandleCheckCustomer,
@@ -353,12 +480,16 @@ module.exports = {
 	HandleGetAllOrder,
 	HandleGetAllReservation,
 	HandleCreateDish,
+	HandleEditDish,
+	HandleDeleteDish,
 	HandleGetAllDish,
+	HandleGetAllCategory,
 	HandleCreateOrderDetail,
 	HandleGetAllOrderDetail,
 	HandleUpdateOrderDetail,
 	HandleUpdateOrder,
 	HandleCreateInvoice,
+	HandleGetAllInvoice,
 	HandleGetInvoice,
 	HandleUpdateDiscount,
 	handlePaymentZaloPay,

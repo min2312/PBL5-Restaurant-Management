@@ -21,20 +21,19 @@ let initWebRoutes = (app) => {
 	router.get("/api/get-all-table", apiController.HandleGetAllTable);
 	router.get("/api/get-all-order", apiController.HandleGetAllOrder);
 	router.get("/api/get-invoice", apiController.HandleGetInvoice);
+	router.get("/api/get-all-invoice", apiController.HandleGetAllInvoice);
 	router.get("/api/get-all-orderDetail", apiController.HandleGetAllOrderDetail);
 	router.get("/api/get-all-reservation", apiController.HandleGetAllReservation);
 	router.get(
 		"/api/get-all-orderPending",
 		apiController.HandleGetAllOrderPending
 	);
-	// router.get("/api/get-all-slot", apiController.HandleGetAllSlot);
-	// router.get("/api/get-info-car", userController.HandleGetInfoCar);
 	router.get("/api/getAllDish", apiController.HandleGetAllDish);
-	// router.get("/api/getAllCar_Ticket", apiController.HandleGetAllCar_Ticket);
+	router.get("/api/getAllCategory", apiController.HandleGetAllCategory);
 	router.get("/api/account", userController.getUserAccount);
 	router.get("/api/accountAdmin", adminController.getAdminAccount);
-	// router.get("/api/getTypeTicket", apiController.HandleGetTypeTicket);
-	// router.put("/api/edit-user", userController.HandleEditUser);
+	router.get("/api/get-all-user", userController.HandleGetAllUser);
+	router.put("/api/edit-user", userController.HandleEditUser);
 	router.post("/api/create-new-user", userController.HandleCreateNewUser);
 	router.post("/api/create-new-order", apiController.HandleCreateNewOrder);
 	router.post("/api/order-status", apiController.HandleUpdateOrder);
@@ -53,20 +52,22 @@ let initWebRoutes = (app) => {
 		apiController.HandleCreateDish
 	);
 	router.post(
+		"/api/update-dish",
+		uploadCloud.single("image"),
+		apiController.HandleEditDish
+	);
+	router.post("/api/delete-dish", apiController.HandleDeleteDish);
+	router.post(
 		"/api/create-new-customer",
 		apiController.HandleCreateNewCustomer
 	);
 	router.post("/api/check-customer", apiController.HandleCheckCustomer);
 	router.post("/api/update-customer", apiController.HandleUpdateCustomer);
 	router.post("/api/update-discount", apiController.HandleUpdateDiscount);
-	// router.post("/api/create-ticket", apiController.HandleCreatePayment);
-	// router.post("/api/cancel-deposit", apiController.CancelDepositMoney);
-	// router.post("/api/deposit-money", apiController.HandleDepositMoney);
-	// router.post("/api/delete-ticket", apiController.HandleDeleteTicket);
-	// router.post("/api/createTime", apiController.HandleCreateTime);
-	// router.post("/api/checkTime", apiController.HandleCheckTime);
-	// router.post("/api/updateSlot", apiController.UpdateSlot);
-	// router.delete("/api/delete-user", userController.HandleDeleteUser);
+	router.post("/api/create-new-table", apiController.HandleCreateTable);
+	router.post("/api/update-table", apiController.HandleUpdateTable);
+	router.post("/api/delete-table", apiController.HandleDeleteTable);
+	router.delete("/api/delete-user", userController.HandleDeleteUser);
 	// router.post("/payment", apiController.HandlePaymentMoMo);
 	router.post("/payment/ZaloPay", apiController.handlePaymentZaloPay);
 	router.post("/payment/CheckZaloPay", apiController.handleCheckZaloPay);
