@@ -99,6 +99,48 @@ const GetAllDish = (InputId) => {
 		});
 };
 
+const CreateNewDish = (data) => {
+	return axios
+		.post("/api/create-new-dish", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const UpdateDish = (data) => {
+	return axios
+		.post("/api/update-dish", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const DeleteDish = (id) => {
+	return axios
+		.post("/api/delete-dish", { id })
+		.then((response) => response)
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const GetAllCategory = () => {
+	return axios
+		.get("/api/getAllCategory")
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
 const GetAllOrderDetail = (InputId) => {
 	return axios
 		.get(`/api/get-all-orderDetail?id=${InputId}`)
@@ -184,9 +226,57 @@ const CheckPayment = async (apptransid) => {
 	return axios.post("/payment/CheckZaloPay", { app_trans_id: apptransid });
 };
 
+const CreateNewTable = (data) => {
+	return axios
+		.post("/api/create-new-table", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const UpdateTable = (data) => {
+	return axios
+		.post("/api/update-table", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const DeleteTable = (data) => {
+	return axios
+		.post("/api/delete-table", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const GetAllInvoice = (InputId) => {
+	return axios
+		.get(`/api/get-all-invoice?id=${InputId}`)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
 export {
 	GetAllTable,
 	GetAllDish,
+	CreateNewDish,
+	UpdateDish,
+	DeleteDish,
+	GetAllCategory,
 	CreateNewCustomer,
 	CheckCustomer,
 	CreateNewOrder,
@@ -203,4 +293,8 @@ export {
 	UpdateDiscount,
 	PaymentZaloPay,
 	CheckPayment,
+	CreateNewTable,
+	UpdateTable,
+	DeleteTable,
+	GetAllInvoice,
 };
