@@ -9,7 +9,8 @@ import {
 	FaCog,
 	FaSignOutAlt,
 	FaBars,
-	FaUtensils, // Added utensils icon for dish management
+	FaUtensils,
+	FaPercentage,
 } from "react-icons/fa";
 import Dashboard from "./Dashboard";
 import CreateUser from "./CreateUser";
@@ -17,6 +18,7 @@ import ManageUsers from "./ManageUsers";
 import ManageTables from "./ManageTables";
 import ManageOrders from "./ManageOrders";
 import ManageInvoices from "./ManageInvoices";
+import ManageDiscounts from "./ManageDiscounts"; // Import the new component
 import "./AdminDashboard.css";
 import { UserContext } from "../../Context/UserProvider";
 import { toast } from "react-toastify";
@@ -76,10 +78,12 @@ const AdminDashboard = () => {
 				return <ManageTables />;
 			case "manage-orders":
 				return <ManageOrders />;
-			case "manage-reservations":
+			case "manage-invoices":
 				return <ManageInvoices />;
 			case "manage-dishes":
-				return <ManageDishes />; // Added case for managing dishes
+				return <ManageDishes />;
+			case "manage-discounts":
+				return <ManageDiscounts />;
 			default:
 				return <Dashboard setActiveView={setActiveView} />;
 		}
@@ -137,6 +141,16 @@ const AdminDashboard = () => {
 						</Nav.Link>
 
 						<Nav.Link
+							className={activeView === "manage-discounts" ? "active" : ""}
+							onClick={() => setActiveView("manage-discounts")}
+						>
+							<FaPercentage />
+							<span className={collapsed ? "d-none" : ""}>
+								Manage Discounts
+							</span>
+						</Nav.Link>
+
+						<Nav.Link
 							className={activeView === "manage-orders" ? "active" : ""}
 							onClick={() => setActiveView("manage-orders")}
 						>
@@ -145,8 +159,8 @@ const AdminDashboard = () => {
 						</Nav.Link>
 
 						<Nav.Link
-							className={activeView === "manage-reservations" ? "active" : ""}
-							onClick={() => setActiveView("manage-reservations")}
+							className={activeView === "manage-invoices" ? "active" : ""}
+							onClick={() => setActiveView("manage-invoices")}
 						>
 							<FaFileInvoiceDollar />
 							<span className={collapsed ? "d-none" : ""}>Manage Invoices</span>

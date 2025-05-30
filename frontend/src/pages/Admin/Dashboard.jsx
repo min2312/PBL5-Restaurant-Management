@@ -666,7 +666,7 @@ const Dashboard = ({ setActiveView }) => {
 															className={`badge ${
 																order.status === "PENDING"
 																	? "bg-warning"
-																	: order.status === "COMPLETED"
+																	: order.status === "Completed"
 																	? "bg-success"
 																	: "bg-info"
 															} rounded-pill px-3 py-2`}

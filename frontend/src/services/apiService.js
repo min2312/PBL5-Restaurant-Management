@@ -55,6 +55,32 @@ const CreateNewCustomer = (customer) => {
 		});
 };
 
+const GetAllCustomer = (id) => {
+	return axios.get(`/api/get-all-customer?id=${id}`).then((response) => {
+		return response;
+	});
+};
+
+const EditCustomer = (data) => {
+	return axios
+		.post("/api/edit-customer", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const DeleteCustomer = (id) => {
+	return axios
+		.post("/api/delete-customer", { id })
+		.then((response) => response)
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
 const CheckCustomer = (phoneNumber) => {
 	return axios
 		.post("/api/check-customer", { phoneNumber })
@@ -270,6 +296,47 @@ const GetAllInvoice = (InputId) => {
 		});
 };
 
+const GetAllDiscounts = () => {
+	return axios
+		.get("/api/getAllDiscounts")
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const UpdateDiscounts = (data) => {
+	return axios
+		.post("/api/update-discounts", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const CreateDiscount = (data) => {
+	return axios
+		.post("/api/create-discount", data)
+		.then((response) => {
+			return response;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const DeleteDiscount = (id) => {
+	return axios
+		.post("/api/delete-discount", { id })
+		.then((response) => response)
+		.catch((err) => {
+			console.log(err);
+		});
+};
 export {
 	GetAllTable,
 	GetAllDish,
@@ -278,6 +345,9 @@ export {
 	DeleteDish,
 	GetAllCategory,
 	CreateNewCustomer,
+	GetAllCustomer,
+	EditCustomer,
+	DeleteCustomer,
 	CheckCustomer,
 	CreateNewOrder,
 	CreateNewOrderDetail,
@@ -297,4 +367,8 @@ export {
 	UpdateTable,
 	DeleteTable,
 	GetAllInvoice,
+	GetAllDiscounts,
+	UpdateDiscounts,
+	CreateDiscount,
+	DeleteDiscount,
 };

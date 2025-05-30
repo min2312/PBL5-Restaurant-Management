@@ -162,7 +162,7 @@ const ManageInvoices = () => {
 		setSearchTerm(e.target.value);
 	};
 
-	// New function to view order details
+	// Fix the handleViewOrderDetails function to correctly calculate discounts
 	const handleViewOrderDetails = async (invoice) => {
 		setOrderItemsLoading(true);
 		try {
@@ -178,7 +178,7 @@ const ManageInvoices = () => {
 					orderDetailsResponse.orderDetail &&
 					Array.isArray(orderDetailsResponse.orderDetail)
 				) {
-					// Calculate order subtotal before discount
+					// Calculate order subtotal before any discounts
 					let subtotal = 0;
 					orderDetailsResponse.orderDetail.forEach((item) => {
 						const dish = item.Dish || {};
@@ -186,8 +186,44 @@ const ManageInvoices = () => {
 						subtotal += price * item.quantity;
 					});
 
-					// Calculate discount amount (subtotal - final amount)
-					const discountAmount = subtotal - invoice.totalAmount;
+					// Use appliedPoints from the database
+					const loyaltyDiscountAmount = (invoice.appliedPoints || 0) * 100; // Assuming 1 point = 100 VND
+
+					// Subtotal after loyalty discount
+					const subtotalAfterLoyaltyDiscount = subtotal - loyaltyDiscountAmount;
+
+					// Calculate admin discount amount as a percentage of the subtotal after loyalty discount
+					let adminDiscountAmount = 0;
+					let adminDiscountPercentage = 0;
+
+					if (invoice.discountId !== null && invoice.Discount) {
+						const adminDiscount = invoice.Discount;
+						adminDiscountPercentage = adminDiscount.discount_percentage || 0;
+
+						if (adminDiscount.type === "Decrease") {
+							// Calculate admin discount as a percentage of the remaining subtotal
+							adminDiscountAmount =
+								(subtotalAfterLoyaltyDiscount * adminDiscountPercentage) / 100;
+						} else {
+							// For surcharge type, calculate as a negative discount
+							adminDiscountAmount =
+								-(subtotalAfterLoyaltyDiscount * adminDiscountPercentage) / 100;
+						}
+					}
+
+					// Debug the calculation
+					console.log("Invoice discount calculation:", {
+						invoiceId: invoice.id,
+						discountId: invoice.discountId,
+						subtotal: subtotal.toFixed(2),
+						finalAmount: invoice.totalAmount.toFixed(2),
+						appliedPoints: invoice.appliedPoints || 0,
+						loyaltyDiscountAmount: loyaltyDiscountAmount.toFixed(2),
+						subtotalAfterLoyaltyDiscount:
+							subtotalAfterLoyaltyDiscount.toFixed(2),
+						adminDiscountPercentage,
+						adminDiscountAmount: adminDiscountAmount.toFixed(2),
+					});
 
 					setSelectedOrderDetails({
 						orderId: invoice.orderId,
@@ -196,7 +232,13 @@ const ManageInvoices = () => {
 						customerName: order.Customer ? order.Customer.name : "Guest",
 						invoice: invoice,
 						subtotal: subtotal,
-						discountAmount: discountAmount > 0 ? discountAmount : 0,
+						loyaltyDiscountAmount: loyaltyDiscountAmount,
+						adminDiscountAmount: Math.abs(adminDiscountAmount), // Store absolute value for display
+						adminDiscountPercentage: adminDiscountPercentage,
+						adminDiscountType: invoice.Discount?.type || null,
+						adminDiscount: invoice.Discount || null,
+						hasAdminDiscount: invoice.discountId !== null,
+						finalAmount: invoice.totalAmount,
 					});
 				} else {
 					// If no items found, set empty array
@@ -207,7 +249,10 @@ const ManageInvoices = () => {
 						customerName: order.Customer ? order.Customer.name : "Guest",
 						invoice: invoice,
 						subtotal: 0,
-						discountAmount: 0,
+						loyaltyDiscountAmount: 0,
+						adminDiscountAmount: 0,
+						adminDiscountPercentage: 0,
+						hasAdminDiscount: false,
 					});
 					toast.info("No items found for this order");
 				}
@@ -218,6 +263,18 @@ const ManageInvoices = () => {
 		} catch (error) {
 			console.error("Error fetching order details:", error);
 			toast.error("Failed to load order details");
+			setSelectedOrderDetails({
+				orderId: invoice.orderId,
+				items: [],
+				tableName: "Unknown Table",
+				customerName: "Unknown Customer",
+				invoice: invoice,
+				subtotal: 0,
+				loyaltyDiscountAmount: 0,
+				adminDiscountAmount: 0,
+				adminDiscountPercentage: 0,
+				adminDiscount: null,
+			});
 		} finally {
 			setOrderItemsLoading(false);
 			setShowOrderDetailsModal(true);
@@ -660,28 +717,123 @@ const ManageInvoices = () => {
 										</table>
 									</div>
 
-									<div className="card mt-4 bg-light border-0 shadow-sm">
+									{/* Update the discount summary section */}
+									<div className="card mt-4 border-0 shadow-sm">
+										<div className="card-header bg-primary text-white">
+											<h5 className="mb-0 fw-bold">Payment Summary</h5>
+										</div>
 										<div className="card-body">
-											<div className="d-flex justify-content-between align-items-center mb-2">
+											<div className="d-flex justify-content-between mb-3">
 												<span className="fw-medium">Subtotal:</span>
 												<span>
-													{formatCurrency(selectedOrderDetails.subtotal)}
+													{formatCurrency(selectedOrderDetails.subtotal || 0)}
 												</span>
 											</div>
-											<div className="d-flex justify-content-between align-items-center mb-2">
-												<span className="fw-medium">Discount:</span>
-												<span className="text-danger">
-													-{formatCurrency(selectedOrderDetails.discountAmount)}
-												</span>
+
+											{/* Discounts Section */}
+											<div className="card mb-3 border">
+												<div className="card-header bg-light py-2">
+													<h6 className="mb-0 fw-semibold">
+														Applied Discounts
+													</h6>
+												</div>
+												<div className="card-body p-3">
+													{/* Loyalty Points Discount Row */}
+													<div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+														<div className="fw-medium">
+															{selectedOrderDetails.loyaltyDiscountAmount > 0
+																? `Loyalty Points (${selectedOrderDetails.invoice.appliedPoints} points):`
+																: "Loyalty Discount:"}
+														</div>
+														{selectedOrderDetails.loyaltyDiscountAmount > 0 ? (
+															<span className="text-success fw-medium">
+																-{" "}
+																{formatCurrency(
+																	selectedOrderDetails.loyaltyDiscountAmount
+																)}
+															</span>
+														) : (
+															<span className="text-muted">
+																No loyalty discount
+															</span>
+														)}
+													</div>
+
+													{/* Admin Discount Row */}
+													<div className="d-flex justify-content-between align-items-center">
+														<div className="fw-medium">
+															{selectedOrderDetails.hasAdminDiscount &&
+															selectedOrderDetails.adminDiscount ? (
+																<>
+																	Admin Discount (
+																	{selectedOrderDetails.adminDiscountPercentage}
+																	%):
+																</>
+															) : (
+																"Admin Discount:"
+															)}
+														</div>
+
+														{selectedOrderDetails.hasAdminDiscount &&
+														selectedOrderDetails.adminDiscount ? (
+															<span
+																className={
+																	selectedOrderDetails.adminDiscountType ===
+																	"Decrease"
+																		? "text-success fw-medium"
+																		: "text-danger fw-medium"
+																}
+															>
+																{selectedOrderDetails.adminDiscountType ===
+																"Decrease"
+																	? "- "
+																	: "+ "}
+																{formatCurrency(
+																	selectedOrderDetails.adminDiscountAmount
+																)}
+															</span>
+														) : (
+															<span className="text-muted">
+																No admin discount
+															</span>
+														)}
+													</div>
+												</div>
 											</div>
-											<hr />
-											<div className="d-flex justify-content-between align-items-center fw-bold">
-												<span className="fs-5">Total:</span>
-												<span className="fs-5 text-success">
+
+											{/* Total after all discounts */}
+											<div className="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+												<span className="fs-5 fw-bold">Total Paid:</span>
+												<span className="fs-5 fw-bold text-success">
 													{formatCurrency(
-														selectedOrderDetails.invoice.totalAmount
+														selectedOrderDetails.invoice.totalAmount || 0
 													)}
 												</span>
+											</div>
+
+											{/* Payment Method */}
+											<div className="mt-3 text-end">
+												<Badge
+													bg={
+														selectedOrderDetails.invoice.paymentMethod ===
+														"cash"
+															? "success"
+															: "info"
+													}
+													className="px-3 py-2"
+												>
+													{selectedOrderDetails.invoice.paymentMethod ===
+													"cash" ? (
+														<>
+															<FaMoneyBillWave className="me-1" /> Paid by Cash
+														</>
+													) : (
+														<>
+															<FaCreditCard className="me-1" /> Paid by Bank
+															Transfer
+														</>
+													)}
+												</Badge>
 											</div>
 										</div>
 									</div>

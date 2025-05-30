@@ -169,7 +169,8 @@
 .admin-area .sidebar-menu {
 	padding: 1rem 0;
 	flex: 1;
-	overflow-y: auto;
+	overflow-y: hidden;
+	overflow-x: hidden;
 }
 
 .admin-area .sidebar-menu .nav-link {
