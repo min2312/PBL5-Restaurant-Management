@@ -14,7 +14,7 @@ import {
 	CreateInvoice,
 } from "../../services/apiService";
 import { io } from "socket.io-client";
-
+import CozeChat from "../../Component/ChatBot/CozeChat";
 const OrderMenu = () => {
 	const location = useLocation();
 	const history = useHistory();
@@ -442,6 +442,9 @@ const OrderMenu = () => {
 
 	return (
 		<div className="bg-light min-vh-100">
+			<div className="chatBot" style={{ position: "fixed", zIndex: 1000 }}>
+				<CozeChat />
+			</div>
 			{/* Header */}
 			<header
 				className="bg-gradient-primary py-4 mb-4"

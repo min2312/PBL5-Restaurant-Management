@@ -28,6 +28,9 @@ const Waiter = () => {
 	const history = useHistory();
 	const [customerInfoByTable, setCustomerInfoByTable] = useState({});
 	const [notification, setNotification] = useState(null);
+	// Add filter state
+	const [filter, setFilter] = useState("ALL");
+	const [searchTerm, setSearchTerm] = useState("");
 
 	const toast2 = {
 		success: (message) => {
@@ -297,6 +300,29 @@ const Waiter = () => {
 		}
 	};
 
+	// Add a function to filter tables
+	const getFilteredTables = () => {
+		if (!tables || tables.length === 0) return [];
+
+		let filteredTables = [...tables];
+
+		// Filter by status
+		if (filter !== "ALL") {
+			filteredTables = filteredTables.filter(
+				(table) => table.status === filter
+			);
+		}
+
+		// Filter by search term (table number)
+		if (searchTerm) {
+			filteredTables = filteredTables.filter((table) =>
+				table.tableNumber.toString().includes(searchTerm)
+			);
+		}
+
+		return filteredTables;
+	};
+
 	return (
 		<div className="bg-light min-vh-100">
 			{/* Toast notification */}
@@ -423,13 +449,61 @@ const Waiter = () => {
 					</div>
 				</div>
 
+				<div className="row mb-4">
+					<div className="col-12">
+						<div
+							className="card border-0 shadow-sm"
+							style={{ borderRadius: "16px" }}
+						>
+							<div className="card-body p-4">
+								<h5 className="card-title fw-bold mb-3">
+									<i className="bi bi-funnel me-2 text-primary"></i>Filter
+									Tables
+								</h5>
+								<div className="row g-3">
+									<div className="col-md-6">
+										<div className="input-group">
+											<span className="input-group-text bg-light border-0">
+												<i className="bi bi-search text-primary"></i>
+											</span>
+											<input
+												type="text"
+												className="form-control bg-light border-0"
+												placeholder="Search by table number"
+												value={searchTerm}
+												onChange={(e) => setSearchTerm(e.target.value)}
+											/>
+										</div>
+									</div>
+									<div className="col-md-6">
+										<select
+											className="form-select bg-light border-0"
+											value={filter}
+											onChange={(e) => setFilter(e.target.value)}
+										>
+											<option value="ALL">All Tables</option>
+											<option value="AVAILABLE">Available</option>
+											<option value="Pending">Pending</option>
+											<option value="Occupied">Occupied</option>
+											<option value="Completed">Completed</option>
+										</select>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<h4 className="fw-bold mb-4">
 					<i className="bi bi-grid me-2 text-primary"></i>Table Status
+					{filter !== "ALL" && (
+						<span className="badge bg-primary ms-2">Filter: {filter}</span>
+					)}
 				</h4>
 
 				<div className="row g-4">
-					{tables && tables.length > 0 ? (
-						tables.map((table, index) => {
+					{getFilteredTables().length > 0 ? (
+						getFilteredTables().map((table, index) => {
 							const statusClass = getStatusColor(table.status);
 							const isServedByMe =
 								staff[table.tableNumber]?.id === user?.account?.id;
@@ -581,9 +655,11 @@ const Waiter = () => {
 									style={{ fontSize: "3rem" }}
 								></i>
 							</div>
-							<h5 className="text-muted mb-2">No Tables Available</h5>
+							<h5 className="text-muted mb-2">No Tables Found</h5>
 							<p className="text-muted mb-0">
-								Please check back later or contact management
+								{filter !== "ALL"
+									? `No tables with status "${filter}" found. Try changing the filter.`
+									: "Please check back later or contact management"}
 							</p>
 						</div>
 					)}

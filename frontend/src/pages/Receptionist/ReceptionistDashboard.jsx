@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Modal, Button } from "react-bootstrap";
+import { Modal, Button, Form } from "react-bootstrap";
 import "./ReceptionistDashboard.css";
 import CustomerModal from "../../Component/Customer/CustomerModal";
 import {
@@ -12,6 +12,7 @@ import {
 	PaymentZaloPay,
 	UpdateCustomer,
 	UpdateDiscount,
+	GetAllDiscounts,
 } from "../../services/apiService";
 import { toast } from "react-toastify";
 import { io } from "socket.io-client";
@@ -31,12 +32,18 @@ const ReceptionistDashboard = () => {
 		table: null,
 		totalAmount: 0,
 		invoiceItems: [],
-		discount: 0,
+		loyaltyDiscount: 0, // Track loyalty discount separately
+		adminDiscount: 0, // Track admin discount separately
 		finalAmount: 0,
 		customerInfo: null,
+		selectedDiscount: null, // Selected admin discount object
+		discount: 0, // Add this property to ensure backward compatibility
 	});
+	const [availableDiscounts, setAvailableDiscounts] = useState([]); // Store available admin discounts
 
 	const { user } = useContext(UserContext);
+	const [filter, setFilter] = useState("ALL");
+	const [searchTerm, setSearchTerm] = useState("");
 
 	const GetData = async () => {
 		try {
@@ -53,8 +60,24 @@ const ReceptionistDashboard = () => {
 		}
 	};
 
+	// Add this function to fetch available discounts
+	const fetchDiscounts = async () => {
+		try {
+			const response = await GetAllDiscounts();
+			if (response && response.errCode === 0) {
+				setAvailableDiscounts(response.discount || []);
+			} else {
+				console.error("Failed to load discounts:", response?.errMessage);
+			}
+		} catch (error) {
+			console.error("Error fetching discounts:", error);
+		}
+	};
+
+	// Update useEffect to fetch discounts when component mounts
 	useEffect(() => {
 		GetData();
+		fetchDiscounts(); // Fetch available discounts
 	}, []);
 
 	const location = useLocation();
@@ -81,31 +104,81 @@ const ReceptionistDashboard = () => {
 					(sum, item) => sum + (item.Dish.price || 0) * (item.quantity || 0),
 					0
 				);
-				const discount = totalAmount - (response.total || 0);
-				const finalAmount = totalAmount - Math.max(discount, 0);
+				const loyaltyDiscount = totalAmount - (response.total || 0);
+				const finalAmount = totalAmount - Math.max(loyaltyDiscount, 0);
+
+				// Check for saved discount ID in URL params
+				const discountId = queryParams.get("discountId");
+				let selectedDiscount = null;
+				let adminDiscount = 0;
+
+				// If we have a discountId, fetch the discount details
+				if (discountId) {
+					try {
+						// Find the discount in the available discounts
+						const discountResponse = await GetAllDiscounts();
+						if (discountResponse && discountResponse.errCode === 0) {
+							selectedDiscount = discountResponse.discount.find(
+								(d) => d.id === parseInt(discountId)
+							);
+
+							if (selectedDiscount) {
+								// Calculate admin discount amount
+								const priceAfterLoyalty =
+									totalAmount - Math.max(loyaltyDiscount, 0);
+								if (selectedDiscount.type === "Decrease") {
+									adminDiscount =
+										(priceAfterLoyalty * selectedDiscount.discount_percentage) /
+										100;
+								} else {
+									adminDiscount =
+										(priceAfterLoyalty * selectedDiscount.discount_percentage) /
+										100;
+								}
+							}
+						}
+					} catch (err) {
+						console.error("Error fetching discount:", err);
+					}
+				}
 
 				setPaymentInfo({
 					table: table.table[0],
 					totalAmount,
 					invoiceItems,
-					discount: Math.max(discount, 0),
+					loyaltyDiscount: Math.max(loyaltyDiscount, 0),
+					adminDiscount: adminDiscount,
+					discount: Math.max(loyaltyDiscount, 0), // Set discount for backward compatibility
 					finalAmount,
 					customerInfo,
+					selectedDiscount,
 				});
 
 				if (status !== "-49") {
 					const paymentStatus = await CheckPayment(appTransId);
 
 					if (paymentStatus && paymentStatus.return_code === 1) {
+						// Calculate total discount amount including both loyalty and admin discount
+						const totalDiscountAmount =
+							loyaltyDiscount +
+							(selectedDiscount?.type === "Decrease"
+								? adminDiscount
+								: -adminDiscount);
+
 						let data = {
 							orderId: invoiceItems[0].orderId,
 							customerId: invoiceItems[0].Order.customerId,
-							discount: discount / 100,
-							totalAmount: totalAmount,
+							discount: loyaltyDiscount / 100,
+							totalAmount: amount, // This is the correct final amount after all discounts
 							paymentMethod: "Bank Transfer",
 							table: table.table,
 							status: "Completed",
 						};
+
+						// Add discountId if it was provided
+						if (discountId) {
+							data.discountId = parseInt(discountId);
+						}
 
 						let update = await UpdateDiscount(data);
 						const [res, respone1] = await Promise.all([
@@ -294,6 +367,7 @@ const ReceptionistDashboard = () => {
 		setModalIsOpen(true);
 	};
 
+	// Update handleOpenPayment to properly separate loyalty discount
 	const handleOpenPayment = async (table) => {
 		try {
 			const response = await GetInvoice(table.id);
@@ -305,19 +379,21 @@ const ReceptionistDashboard = () => {
 				const totalAmount = invoiceItems.reduce((sum, item) => {
 					return sum + (item.Dish.price || 0) * (item.quantity || 0);
 				}, 0);
-				// Calculate discount (ensure it's a number)
-				const discount = totalAmount - (response.total || 0);
+				// Calculate loyalty discount (ensure it's a number)
+				const loyaltyDiscount = totalAmount - (response.total || 0);
 
-				// Calculate final amount after discount
-				const finalAmount = totalAmount - Math.max(discount, 0);
+				// Calculate final amount after loyalty discount only
+				const finalAmount = totalAmount - Math.max(loyaltyDiscount, 0);
 
 				setPaymentInfo({
 					table,
 					totalAmount,
 					invoiceItems,
-					discount: Math.max(discount, 0), // Ensure discount is non-negative
+					loyaltyDiscount: Math.max(loyaltyDiscount, 0), // Store loyalty discount
+					adminDiscount: 0, // Reset admin discount
 					finalAmount,
 					customerInfo,
+					selectedDiscount: null, // Reset selected discount
 				});
 
 				setPaymentModalOpen(true);
@@ -354,20 +430,87 @@ const ReceptionistDashboard = () => {
 		setPhoneNumber("");
 		setNewCustomer({ name: "", phone: "" });
 	};
+
+	// Update handleDiscountChange to apply admin discount on top of loyalty discount
+	const handleDiscountChange = (e) => {
+		const selectedId = parseInt(e.target.value);
+
+		// If no discount selected or invalid ID
+		if (selectedId === 0 || isNaN(selectedId)) {
+			// Keep only the loyalty discount
+			setPaymentInfo({
+				...paymentInfo,
+				selectedDiscount: null,
+				adminDiscount: 0,
+				finalAmount: paymentInfo.totalAmount - paymentInfo.loyaltyDiscount,
+			});
+			return;
+		}
+
+		// Find the selected discount
+		const selectedDiscount = availableDiscounts.find(
+			(d) => d.id === selectedId
+		);
+
+		if (selectedDiscount) {
+			let adminDiscountAmount = 0;
+			let finalAmount = 0;
+
+			// Calculate price after loyalty discount is applied
+			const priceAfterLoyalty =
+				paymentInfo.totalAmount - paymentInfo.loyaltyDiscount;
+
+			if (selectedDiscount.type === "Decrease") {
+				// For decrease type, calculate the additional discount to apply
+				adminDiscountAmount =
+					(priceAfterLoyalty * selectedDiscount.discount_percentage) / 100;
+				finalAmount = priceAfterLoyalty - adminDiscountAmount;
+			} else {
+				// Increase type
+				// For increase type, it adds to the price
+				adminDiscountAmount =
+					(priceAfterLoyalty * selectedDiscount.discount_percentage) / 100;
+				finalAmount = priceAfterLoyalty + adminDiscountAmount;
+			}
+
+			setPaymentInfo({
+				...paymentInfo,
+				selectedDiscount: selectedDiscount,
+				adminDiscount: adminDiscountAmount,
+				finalAmount: finalAmount,
+			});
+		}
+	};
+
+	// Update handlePaymentMethod to include both discount types
 	const handlePaymentMethod = async (method) => {
 		if (!paymentInfo.invoiceItems[0] || !paymentInfo.invoiceItems[0].Order) {
 			return;
 		}
+
 		if (method === "Cash") {
+			// Calculate total discount amount (both loyalty and admin discount if applicable)
+			const totalDiscountAmount =
+				paymentInfo.loyaltyDiscount +
+				(paymentInfo.selectedDiscount?.type === "Decrease"
+					? paymentInfo.adminDiscount
+					: -paymentInfo.adminDiscount);
+
 			let data = {
 				orderId: paymentInfo.invoiceItems[0].orderId,
 				customerId: paymentInfo.invoiceItems[0].Order.customerId,
-				discount: paymentInfo.discount / 100,
-				totalAmount: paymentInfo.totalAmount,
+				discount: paymentInfo.loyaltyDiscount / 100, // Convert to appropriate format for backend
+				totalAmount: paymentInfo.finalAmount, // This is already calculated correctly in the UI
 				paymentMethod: method,
 				table: paymentInfo.table,
 				status: "Completed",
 			};
+
+			// Add discountId if an admin discount was selected
+			if (paymentInfo.selectedDiscount) {
+				data.discountId = paymentInfo.selectedDiscount.id;
+			}
+
 			let update = await UpdateDiscount(data);
 			const [res, respone] = await Promise.all([
 				CreateInvoice(data),
@@ -398,15 +541,28 @@ const ReceptionistDashboard = () => {
 			}
 		} else if (method === "Bank Transfer") {
 			try {
+				// Same logic for bank transfer payment
+				const totalDiscountAmount =
+					paymentInfo.loyaltyDiscount +
+					(paymentInfo.selectedDiscount?.type === "Decrease"
+						? paymentInfo.adminDiscount
+						: -paymentInfo.adminDiscount);
+
 				let data = {
 					orderId: paymentInfo.invoiceItems[0].orderId,
 					customerId: paymentInfo.invoiceItems[0].Order.customerId,
-					discount: paymentInfo.discount / 100,
-					totalAmount: paymentInfo.totalAmount,
+					discount: paymentInfo.loyaltyDiscount / 100,
+					totalAmount: paymentInfo.finalAmount,
 					paymentMethod: method,
 					table: paymentInfo.table,
 					status: "Completed",
 				};
+
+				// Add discountId if an admin discount was selected
+				if (paymentInfo.selectedDiscount) {
+					data.discountId = paymentInfo.selectedDiscount.id;
+				}
+
 				let payment = await PaymentZaloPay(data);
 				if (payment && payment.return_code === 1) {
 					window.location.href = payment.order_url;
@@ -417,6 +573,27 @@ const ReceptionistDashboard = () => {
 				toast.error("Error while Payment");
 			}
 		}
+	};
+
+	// Add a function to filter tables
+	const getFilteredTables = () => {
+		if (!table || table.length === 0) return [];
+
+		let filteredTables = [...table];
+
+		// Filter by status
+		if (filter !== "ALL") {
+			filteredTables = filteredTables.filter((item) => item.status === filter);
+		}
+
+		// Filter by search term (table number)
+		if (searchTerm) {
+			filteredTables = filteredTables.filter((item) =>
+				item.tableNumber.toString().includes(searchTerm)
+			);
+		}
+
+		return filteredTables;
 	};
 
 	return (
@@ -452,17 +629,68 @@ const ReceptionistDashboard = () => {
 			</header>
 
 			<div className="container mb-5">
+				{/* Add filter card */}
+				<div className="row mb-4">
+					<div className="col-12">
+						<div
+							className="card border-0 shadow-sm"
+							style={{ borderRadius: "16px" }}
+						>
+							<div className="card-body p-4">
+								<h5 className="card-title fw-bold mb-3">
+									<i className="bi bi-funnel me-2 text-primary"></i>Filter
+									Tables
+								</h5>
+								<div className="row g-3">
+									<div className="col-md-6">
+										<div className="input-group">
+											<span className="input-group-text bg-light border-0">
+												<i className="bi bi-search text-primary"></i>
+											</span>
+											<input
+												type="text"
+												className="form-control bg-light border-0"
+												placeholder="Search by table number"
+												value={searchTerm}
+												onChange={(e) => setSearchTerm(e.target.value)}
+											/>
+										</div>
+									</div>
+									<div className="col-md-6">
+										<select
+											className="form-select bg-light border-0"
+											value={filter}
+											onChange={(e) => setFilter(e.target.value)}
+										>
+											<option value="ALL">All Tables</option>
+											<option value="AVAILABLE">Available</option>
+											<option value="Pending">Pending</option>
+											<option value="Occupied">Occupied</option>
+											<option value="Completed">Completed</option>
+										</select>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<div
 					className="card border-0 shadow-sm"
 					style={{ borderRadius: "16px", overflow: "hidden" }}
 				>
 					<div className="card-header border-0 bg-white p-4">
-						<h4 className="mb-0 fw-bold">Floor Map</h4>
+						<div className="d-flex justify-content-between align-items-center">
+							<h4 className="mb-0 fw-bold">Floor Map</h4>
+							{filter !== "ALL" && (
+								<span className="badge bg-primary">Filter: {filter}</span>
+							)}
+						</div>
 					</div>
 					<div className="card-body p-4">
 						<div className="row g-4">
-							{table && table.length > 0 ? (
-								table.map((item, index) => (
+							{getFilteredTables().length > 0 ? (
+								getFilteredTables().map((item, index) => (
 									<div className="col-lg-3 col-md-4 col-sm-6" key={index}>
 										<div
 											className={`card h-100 border-0 position-relative ${
@@ -550,7 +778,9 @@ const ReceptionistDashboard = () => {
 									</div>
 									<h5 className="text-muted">No tables found</h5>
 									<p className="text-muted small">
-										Please check your connection or try refreshing the page
+										{filter !== "ALL"
+											? `No tables with status "${filter}" found. Try changing the filter.`
+											: "Please check your connection or try refreshing the page"}
 									</p>
 								</div>
 							)}
@@ -696,30 +926,141 @@ const ReceptionistDashboard = () => {
 												Subtotal:
 											</td>
 											<td className="text-end fw-bold">
-												{paymentInfo.totalAmount.toLocaleString()} đ
+												{(paymentInfo.totalAmount || 0).toLocaleString()} đ
 											</td>
 										</tr>
-										<tr>
-											<td colSpan="4" className="text-end fw-bold">
-												Discount:
-											</td>
-											<td className="text-end fw-bold text-success">
-												- {paymentInfo.discount.toLocaleString()} đ
-											</td>
-										</tr>
+										{paymentInfo.loyaltyDiscount > 0 && (
+											<tr>
+												<td colSpan="4" className="text-end fw-bold">
+													Loyalty Discount:
+												</td>
+												<td className="text-end fw-bold text-success">
+													-{" "}
+													{(paymentInfo.loyaltyDiscount || 0).toLocaleString()}{" "}
+													đ
+												</td>
+											</tr>
+										)}
+										{paymentInfo.selectedDiscount && (
+											<tr>
+												<td colSpan="4" className="text-end fw-bold">
+													{paymentInfo.selectedDiscount.type === "Decrease"
+														? "Admin Discount:"
+														: "Admin Surcharge:"}
+												</td>
+												<td
+													className={`text-end fw-bold ${
+														paymentInfo.selectedDiscount.type === "Decrease"
+															? "text-success"
+															: "text-danger"
+													}`}
+												>
+													{paymentInfo.selectedDiscount.type === "Decrease"
+														? `- ${(
+																paymentInfo.adminDiscount || 0
+														  ).toLocaleString()} đ`
+														: `+ ${(
+																paymentInfo.adminDiscount || 0
+														  ).toLocaleString()} đ`}
+												</td>
+											</tr>
+										)}
 										<tr>
 											<td colSpan="4" className="text-end fw-bold">
 												Final Amount:
 											</td>
 											<td className="text-end fw-bold fs-5 text-primary">
-												{(
-													paymentInfo.totalAmount - paymentInfo.discount
-												).toLocaleString()}{" "}
-												đ
+												{(paymentInfo.finalAmount || 0).toLocaleString()} đ
 											</td>
 										</tr>
 									</tfoot>
 								</table>
+							</div>
+						</div>
+					</div>
+
+					{/* Updated Discount Options Card */}
+					<div className="card bg-white border-0 shadow-sm mb-4">
+						<div className="card-header bg-light py-3">
+							<div className="d-flex justify-content-between align-items-center">
+								<h6 className="mb-0 fw-bold">Discount Options</h6>
+							</div>
+						</div>
+						<div className="card-body">
+							{/* Loyalty discount section - always show */}
+							<div className="mb-3 py-2 border-bottom">
+								<h6 className="fw-medium mb-2">Customer Loyalty Discount</h6>
+								{(paymentInfo.loyaltyDiscount || 0) > 0 ? (
+									<div className="d-flex justify-content-between align-items-center">
+										<span>
+											<span className="badge bg-info me-2">Points</span>
+											Loyalty discount applied
+										</span>
+										<span className="fw-bold text-success">
+											- {(paymentInfo.loyaltyDiscount || 0).toLocaleString()} đ
+										</span>
+									</div>
+								) : (
+									<div className="text-muted">
+										No loyalty discount available
+									</div>
+								)}
+							</div>
+
+							{/* Admin discount selection - below loyalty discount */}
+							<div>
+								<h6 className="fw-medium mb-2">Additional Admin Discount</h6>
+								<Form.Group>
+									<Form.Select
+										onChange={handleDiscountChange}
+										value={paymentInfo.selectedDiscount?.id || 0}
+									>
+										<option value="0">No admin discount</option>
+										{availableDiscounts.map((discount) => (
+											<option key={discount.id} value={discount.id}>
+												{discount.type === "Increase" ? "+" : "-"}
+												{discount.discount_percentage}% ({discount.type})
+											</option>
+										))}
+									</Form.Select>
+									<Form.Text className="text-muted">
+										Admin discount will be applied in addition to loyalty
+										discount
+									</Form.Text>
+								</Form.Group>
+
+								{/* Show selected admin discount details if any */}
+								{paymentInfo.selectedDiscount && (
+									<div
+										className={`alert ${
+											paymentInfo.selectedDiscount.type === "Decrease"
+												? "alert-success"
+												: "alert-warning"
+										} mt-3 mb-0`}
+									>
+										<div className="d-flex justify-content-between align-items-center">
+											<div>
+												<strong>
+													{paymentInfo.selectedDiscount.type === "Decrease"
+														? "Admin Discount"
+														: "Admin Surcharge"}
+													:
+												</strong>{" "}
+												{paymentInfo.selectedDiscount.discount_percentage}%
+											</div>
+											<div>
+												<strong>Amount:</strong>
+												{paymentInfo.selectedDiscount.type === "Decrease"
+													? ` - ${(
+															paymentInfo.adminDiscount || 0
+													  ).toLocaleString()} đ`
+													: ` + ${(
+															paymentInfo.adminDiscount || 0
+													  ).toLocaleString()} đ`}
+											</div>
+										</div>
+									</div>
+								)}
 							</div>
 						</div>
 					</div>
