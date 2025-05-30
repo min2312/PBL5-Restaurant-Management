@@ -158,6 +158,54 @@ let HandleCheckCustomer = async (req, res) => {
 	});
 };
 
+let HandleGetAllCustomer = async (req, res) => {
+	let id = req.query.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+			customer: [],
+		});
+	}
+	let customer = await apiService.GetAllCustomer(id);
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		customer: customer,
+	});
+};
+
+let HandleEditCustomer = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.EditCustomer(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		customer: result.customer,
+	});
+};
+
+let HandleDeleteCustomer = async (req, res) => {
+	let id = req.body.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.DeleteCustomer(id);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+	});
+};
+
 let HandleCreateNewOrder = async (req, res) => {
 	let data = req.body;
 	if (!data) {
@@ -426,6 +474,62 @@ let HandleUpdateDiscount = async (req, res) => {
 	});
 };
 
+let HandleGetAllDiscount = async (req, res) => {
+	let discount = await apiService.GetAllDiscount();
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		discount: discount,
+	});
+};
+
+let HandleCreateDiscount = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.CreateDiscount(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		discount: result.discount,
+	});
+};
+
+let HandleUpdateDiscounts = async (req, res) => {
+	let data = req.body;
+	if (!data) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.UpdateDiscounts(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+		discount: result.discount,
+	});
+};
+
+let HandleDeleteDiscount = async (req, res) => {
+	let id = req.body.id;
+	if (!id) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.DeleteDiscount(id);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+	});
+};
+
 let handlePaymentZaloPay = async (req, res) => {
 	try {
 		const paymentResult = await apiService.createZaloPayOrder(req.body);
@@ -475,6 +579,9 @@ module.exports = {
 	HandleGetAllOrderPending,
 	HandleCreateNewCustomer,
 	HandleCheckCustomer,
+	HandleGetAllCustomer,
+	HandleEditCustomer,
+	HandleDeleteCustomer,
 	HandleCreateNewOrder,
 	HandleUpdateCustomer,
 	HandleGetAllOrder,
@@ -492,6 +599,10 @@ module.exports = {
 	HandleGetAllInvoice,
 	HandleGetInvoice,
 	HandleUpdateDiscount,
+	HandleGetAllDiscount,
+	HandleCreateDiscount,
+	HandleUpdateDiscounts,
+	HandleDeleteDiscount,
 	handlePaymentZaloPay,
 	handleCheckZaloPay,
 	handleCallBackZaloPay,

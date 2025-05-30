@@ -28,6 +28,10 @@ let initWebRoutes = (app) => {
 		"/api/get-all-orderPending",
 		apiController.HandleGetAllOrderPending
 	);
+	router.get("/api/getAllDiscounts", apiController.HandleGetAllDiscount);
+	router.post("/api/update-discounts", apiController.HandleUpdateDiscounts);
+	router.post("/api/create-discount", apiController.HandleCreateDiscount);
+	router.post("/api/delete-discount", apiController.HandleDeleteDiscount);
 	router.get("/api/getAllDish", apiController.HandleGetAllDish);
 	router.get("/api/getAllCategory", apiController.HandleGetAllCategory);
 	router.get("/api/account", userController.getUserAccount);
@@ -61,6 +65,9 @@ let initWebRoutes = (app) => {
 		"/api/create-new-customer",
 		apiController.HandleCreateNewCustomer
 	);
+	router.post("/api/delete-customer", apiController.HandleDeleteCustomer);
+	router.get("/api/get-all-customer", apiController.HandleGetAllCustomer);
+	router.post("/api/edit-customer", apiController.HandleEditCustomer);
 	router.post("/api/check-customer", apiController.HandleCheckCustomer);
 	router.post("/api/update-customer", apiController.HandleUpdateCustomer);
 	router.post("/api/update-discount", apiController.HandleUpdateDiscount);

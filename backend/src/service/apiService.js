@@ -279,6 +279,28 @@ let GetAllOrderDetail = (orderId) => {
 	});
 };
 
+let GetAllCustomer = (customerId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let customers = "";
+			if (customerId === "ALL") {
+				customers = await db.Customer.findAll({
+					attributes: ["id", "name", "phone", "points"],
+				});
+			}
+			if (customerId && customerId !== "ALL") {
+				customers = await db.Customer.findAll({
+					where: { id: customerId },
+					attributes: ["id", "name", "phone", "points"],
+				});
+			}
+			resolve(customers);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 let CreateNewCustomer = (data) => {
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -305,6 +327,74 @@ let CreateNewCustomer = (data) => {
 					errCode: 0,
 					errMessage: "Create new customer successfully",
 					customer: customer,
+				});
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let EditCustomer = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Customer.findOne({
+				where: { id: data.id },
+			});
+			if (check) {
+				let checkPhone = await db.Customer.findOne({
+					where: {
+						phone: data.phone,
+						id: { [Op.ne]: data.id },
+					},
+				});
+				if (checkPhone) {
+					resolve({
+						errCode: 1,
+						errMessage: "The phone number is already registered",
+					});
+					return;
+				}
+				await check.update({
+					name: data.name,
+					phone: data.phone,
+					points: data.points,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Update customer successfully",
+					customer: check,
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Customer not found",
+				});
+			}
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let DeleteCustomer = (customerId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Customer.findOne({
+				where: { id: customerId },
+			});
+			if (check) {
+				await db.Customer.destroy({
+					where: { id: customerId },
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Delete customer successfully",
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Customer not found",
 				});
 			}
 		} catch (e) {
@@ -705,6 +795,8 @@ let CreateInvoice = (data) => {
 
 				await order_invoice.update({
 					paymentMethod: data.paymentMethod,
+					totalAmount: data.totalAmount,
+					discountId: data.discountId,
 				});
 
 				return resolve({
@@ -718,6 +810,7 @@ let CreateInvoice = (data) => {
 				tableId: data.order.tableId,
 				totalAmount: data.totalAmount,
 				paymentMethod: data.paymentMethod || null,
+				appliedPoints: data.appliedPoints || 0,
 			});
 
 			let newInvoice = await db.Invoice.findOne({
@@ -780,11 +873,24 @@ let GetAllInvoice = (invoiceId) => {
 		try {
 			let invoices = "";
 			if (invoiceId === "ALL") {
-				invoices = await db.Invoice.findAll();
+				invoices = await db.Invoice.findAll({
+					include: [
+						{
+							model: db.Discount,
+							attributes: ["id", "discount_percentage", "type"],
+						},
+					],
+				});
 			}
 			if (invoiceId && invoiceId !== "ALL") {
 				invoices = await db.Invoice.findAll({
 					where: { id: invoiceId },
+					include: [
+						{
+							model: db.Discount,
+							attributes: ["id", "discount_percentage", "type"],
+						},
+					],
 				});
 			}
 			resolve({
@@ -977,6 +1083,125 @@ let GetAllCategory = () => {
 	});
 };
 
+let GetAllDiscount = () => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let discounts = await db.Discount.findAll({
+				attributes: ["id", "discount_percentage", "type"],
+				order: [["discount_percentage", "ASC"]],
+			});
+			resolve(discounts);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
+let CreateDiscount = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Discount.findOne({
+				where: {
+					discount_percentage: data.discount_percentage,
+					type: data.type,
+				},
+			});
+			if (check) {
+				resolve({
+					errCode: 1,
+					errMessage: "The discount percentage already exists",
+				});
+			} else {
+				let newDiscount = await db.Discount.create({
+					discount_percentage: data.discount_percentage,
+					type: data.type,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Create new discount successfully",
+					discount: newDiscount,
+				});
+			}
+		} catch (e) {
+			reject({
+				errCode: 1,
+				errMessage: "Error creating discount",
+			});
+		}
+	});
+};
+
+let UpdateDiscounts = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Discount.findOne({
+				where: { id: data.id },
+			});
+			if (check) {
+				let check2 = await db.Discount.findOne({
+					where: {
+						discount_percentage: data.discount_percentage,
+						type: data.type,
+					},
+				});
+				if (check2 && check2.id !== data.id) {
+					return resolve({
+						errCode: 1,
+						errMessage: "The discount percentage already exists",
+					});
+				}
+				await check.update({
+					discount_percentage: data.discount_percentage,
+					type: data.type,
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Update discount successfully",
+					discount: check,
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Discount not found",
+				});
+			}
+		} catch (e) {
+			reject({
+				errCode: 1,
+				errMessage: "Error updating discount",
+			});
+		}
+	});
+};
+let DeleteDiscount = (discountId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let check = await db.Discount.findOne({
+				where: { id: discountId },
+			});
+			if (check) {
+				await db.Discount.destroy({
+					where: { id: discountId },
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Delete discount successfully",
+				});
+			} else {
+				resolve({
+					errCode: 1,
+					errMessage: "Discount not found",
+				});
+			}
+		} catch (e) {
+			reject({
+				errCode: 1,
+				errMessage: "Error deleting discount",
+			});
+		}
+	});
+};
+
 let PaymentMoMo = (amount) => {
 	const accessKey = "F8BBA842ECF85";
 	const secretKey = "K951B6PE1waDMi640xX08PD3vg6EkVlz";
@@ -1036,9 +1261,9 @@ let PaymentMoMo = (amount) => {
 
 const createZaloPayOrder = async (orderDetails) => {
 	let tableId = orderDetails.table ? orderDetails.table.id : null;
-
+	let discountId = orderDetails.discountId ? orderDetails.discountId : null;
 	const embed_data = {
-		redirecturl: `http://localhost:3000/receptionist?tableId=${tableId}`,
+		redirecturl: `http://localhost:3000/receptionist?tableId=${tableId}&discountId=${discountId}`,
 	};
 	const config = {
 		app_id: "2553",
@@ -1147,7 +1372,10 @@ module.exports = {
 	GetAllReservation,
 	GetAllDish,
 	GetAllCategory,
+	GetAllCustomer,
 	CreateNewCustomer,
+	EditCustomer,
+	DeleteCustomer,
 	CheckCustomer,
 	UpdateCustomer,
 	ReservationTable,
@@ -1170,4 +1398,8 @@ module.exports = {
 	CreateNewTable,
 	UpdateTable,
 	DeleteTable,
+	GetAllDiscount,
+	CreateDiscount,
+	UpdateDiscounts,
+	DeleteDiscount,
 };
