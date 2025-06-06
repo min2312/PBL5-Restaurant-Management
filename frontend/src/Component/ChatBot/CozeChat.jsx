@@ -26,9 +26,9 @@ const CozeChat = () => {
 					auth: {
 						type: "token",
 						token:
-							"pat_AkBf59LB0PhnDqxU0gsaVihK3abnSSDHG1GBoFCpwEPIYMUEp7DjtbvjGNWiukPx",
+							"pat_RzygQ1JsklIW0LwnSM2SHqTfdPvjc8iBNtNquV74Ol5hpqdPRBgoj8rFf8gbx3jb",
 						onRefreshToken: function () {
-							return "pat_AkBf59LB0PhnDqxU0gsaVihK3abnSSDHG1GBoFCpwEPIYMUEp7DjtbvjGNWiukPx";
+							return "pat_RzygQ1JsklIW0LwnSM2SHqTfdPvjc8iBNtNquV74Ol5hpqdPRBgoj8rFf8gbx3jb";
 						},
 					},
 				});

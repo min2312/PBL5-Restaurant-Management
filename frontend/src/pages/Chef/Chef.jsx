@@ -239,6 +239,22 @@ const Chef = () => {
 			});
 		});
 
+		newSocket.on("dishCancelled", (data) => {
+			console.log("Dish cancelled:", data);
+			setOrders((prevOrders) =>
+				prevOrders.map((order) => {
+					if (order.id === data.orderId) {
+						const updatedOrder = { ...order };
+						updatedOrder.OrderDetails = updatedOrder.OrderDetails.filter(
+							(detail) => detail.dishId !== data.dishId
+						);
+						return updatedOrder;
+					}
+					return order;
+				})
+			);
+		});
+
 		newSocket.on("connect_error", (err) => {
 			console.error("Connection error:", err.message);
 		});
@@ -453,7 +469,7 @@ const Chef = () => {
 								style={{ whiteSpace: "nowrap" }}
 							>
 								<i className="bi bi-shop me-1"></i>
-								Màn Hình Nhà Bếp
+								Chef Dashboard
 							</h2>
 						</div>
 						<div className="col-6 text-end">
@@ -484,7 +500,7 @@ const Chef = () => {
 							<i className="bi bi-receipt text-primary fs-5"></i>
 						</div>
 						<div>
-							<div className="text-secondary small">Tổng đơn đang chờ</div>
+							<div className="text-secondary small">Total Pending Orders</div>
 							<div className="fs-5 fw-bold">{totalPendingOrders}</div>
 						</div>
 					</div>
@@ -496,7 +512,7 @@ const Chef = () => {
 							<i className="bi bi-fire text-warning fs-5"></i>
 						</div>
 						<div>
-							<div className="text-secondary small">Món cần chế biến</div>
+							<div className="text-secondary small">Items to Prepare</div>
 							<div className="fs-5 fw-bold">{totalPendingItems}</div>
 						</div>
 					</div>
@@ -508,7 +524,7 @@ const Chef = () => {
 							<i className="bi bi-check-circle text-success fs-5"></i>
 						</div>
 						<div>
-							<div className="text-secondary small">Món đã hoàn thành</div>
+							<div className="text-secondary small">Completed Items</div>
 							<div className="fs-5 fw-bold">{totalCompletedItems}</div>
 						</div>
 					</div>
@@ -523,7 +539,7 @@ const Chef = () => {
 						<div className="spinner-border text-primary" role="status">
 							<span className="visually-hidden">Đang tải...</span>
 						</div>
-						<p className="mt-2 text-dark">Đang tải danh sách đơn hàng...</p>
+						<p className="mt-2 text-dark">Loading order list...</p>
 					</div>
 				)}
 
@@ -534,8 +550,8 @@ const Chef = () => {
 							className="bi bi-emoji-smile text-dark"
 							style={{ fontSize: "3rem" }}
 						></i>
-						<h3 className="mt-3 text-dark">Không có đơn hàng nào đang chờ</h3>
-						<p className="text-dark">Nhà bếp đã hoàn thành tất cả món ăn</p>
+						<h3 className="mt-3 text-dark">No pending orders</h3>
+						<p className="text-dark">The kitchen has completed all dishes</p>
 					</div>
 				)}
 
@@ -571,8 +587,8 @@ const Chef = () => {
 												}`}
 											>
 												{hasPendingItems
-													? `${pendingItems.length} món chờ`
-													: "Hoàn thành"}
+													? `${pendingItems.length} items pending`
+													: "Completed"}
 											</span>
 										</div>
 										<div className="card-body p-2">
@@ -599,49 +615,24 @@ const Chef = () => {
 																<div className="fw-bold">{item.name}</div>
 																<div className="d-flex flex-wrap mt-1">
 																	<span className="badge bg-secondary me-2">
-																		{item.Category === "Món khai vị" ? (
+																		{item.Category === "Appetizer" ? (
 																			<>
 																				<i className="bi bi-egg-fried me-1"></i>
-																				Món khai vị
+																				Appetizer
 																			</>
-																		) : item.Category === "Món chính" ? (
+																		) : item.Category === "Main Course" ? (
 																			<>
 																				<i className="bi bi-basket-fill me-1"></i>
-																				Món chính
+																				Main Course
 																			</>
-																		) : item.Category === "Món tráng miệng" ? (
+																		) : item.Category === "Dessert" ? (
 																			<>
-																				<i className="bi bi-wine me-1"></i>Món
-																				tráng miệng
+																				<i className="bi bi-wine me-1"></i>
+																				Dessert
 																			</>
-																		) : item.Category === "Đồ uống" ? (
+																		) : item.Category === "Drink" ? (
 																			<>
-																				<i className="bi bi-cup me-1"></i>Đồ
-																				uống
-																			</>
-																		) : item.Category === "Món Rau, củ, quả" ? (
-																			<>
-																				<i className="bi bi-apple me-1"></i>Món
-																				Rau, củ, quả
-																			</>
-																		) : item.Category === "Món ăn nhẹ" ? (
-																			<>
-																				<i className="bi bi-patch-plus me-1"></i>
-																				Món ăn nhẹ
-																			</>
-																		) : item.Category === "Món canh" ? (
-																			<>
-																				<i className="bi bi-egg me-1"></i>Món
-																				canh
-																			</>
-																		) : item.Category === "Món ăn về cơm" ? (
-																			<>
-																				<i className="bi bi-bag-plus me-1"></i>
-																				Món ăn về cơm
-																			</>
-																		) : item.Category.trim() === "Lẩu" ? (
-																			<>
-																				<i className="bi bi-fire me-1"></i>Lẩu
+																				<i className="bi bi-cup me-1"></i>Drink
 																			</>
 																		) : (
 																			<>
@@ -656,7 +647,7 @@ const Chef = () => {
 																		)}`}
 																	>
 																		<i className="bi bi-clock me-1"></i>
-																		{getTimeSince(item.timestamp)} trước
+																		{getTimeSince(item.timestamp)} ago
 																	</span>
 																</div>
 															</div>
@@ -700,19 +691,6 @@ const Chef = () => {
 						})}
 					</div>
 				)}
-			</div>
-
-			{/* Live Connection Indicator - Changed to light background */}
-			<div className="position-fixed bottom-0 end-0 p-2">
-				<div className="d-flex align-items-center bg-white border border-secondary rounded p-2">
-					<div
-						className="spinner-grow spinner-grow-sm text-success me-2"
-						role="status"
-					>
-						<span className="visually-hidden">Live...</span>
-					</div>
-					<span className="text-dark small">Kết nối trực tiếp</span>
-				</div>
 			</div>
 		</div>
 	);
