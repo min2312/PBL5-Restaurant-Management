@@ -141,6 +141,14 @@ let initWebRoutes = (app) => {
 	router.post("/api/reset-otp/send", sendResetOTP);
 	router.post("/api/reset-otp/verify", verifyResetOTP);
 	router.post("/api/reset-password", resetPassword);
+	router.post(
+		"/api/cancel-order-detail",
+		apiController.HandleCancelOrderDetail
+	);
+	router.get(
+		"/api/get-cancellations-by-order-id",
+		apiController.HandleGetCancellationsByOrderId
+	);
 
 	return app.use("/", router);
 };

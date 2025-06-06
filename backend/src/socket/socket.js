@@ -35,6 +35,11 @@ const initSocket = (server) => {
 			io.emit("orderStatusUpdate", data);
 		});
 
+		// Add handler for dish cancellation
+		socket.on("dishCancelled", (data) => {
+			io.emit("dishCancelled", data);
+		});
+
 		socket.on("disconnect", (reason) => {
 			console.log(`Client disconnected: ${socket.id}, Reason: ${reason}`);
 		});

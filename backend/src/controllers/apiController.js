@@ -571,6 +571,38 @@ let handleCallBackZaloPay = async (req, res) => {
 		});
 	}
 };
+
+let HandleCancelOrderDetail = async (req, res) => {
+	let data = req.body;
+	if (!data || !data.dishData || !data.reason) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let result = await apiService.CancelOrderDetail(data);
+	return res.status(200).json({
+		errCode: result.errCode,
+		errMessage: result.errMessage,
+	});
+};
+
+let HandleGetCancellationsByOrderId = async (req, res) => {
+	let orderId = req.query.orderId;
+	if (!orderId) {
+		return res.status(200).json({
+			errCode: 1,
+			errMessage: "Missing required parameter",
+		});
+	}
+	let cancellations = await apiService.GetCancellationsByOrderId(orderId);
+	return res.status(200).json({
+		errCode: 0,
+		errMessage: "OK",
+		cancellations: cancellations,
+	});
+};
+
 module.exports = {
 	HandleGetAllTable,
 	HandleCreateTable,
@@ -606,4 +638,6 @@ module.exports = {
 	handlePaymentZaloPay,
 	handleCheckZaloPay,
 	handleCallBackZaloPay,
+	HandleCancelOrderDetail,
+	HandleGetCancellationsByOrderId,
 };

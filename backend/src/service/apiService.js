@@ -537,6 +537,23 @@ let GetAllReservation = (reservationId) => {
 let ReservationTable = (data) => {
 	return new Promise(async (resolve, reject) => {
 		try {
+			if (data.status === "Cancelled") {
+				await db.Table.update(
+					{ status: "AVAILABLE" },
+					{ where: { tableNumber: data.table.tableNumber } }
+				);
+				await db.Reservation.destroy({
+					where: {
+						tableId: data.table.id,
+						status: "PENDING",
+					},
+				});
+				resolve({
+					errCode: 0,
+					errMessage: "Reservation cancelled and table is now available",
+				});
+				return;
+			}
 			let existingReservation = await db.Reservation.findOne({
 				where: {
 					tableId: data.table.id,
@@ -1260,6 +1277,7 @@ let PaymentMoMo = (amount) => {
 };
 
 const createZaloPayOrder = async (orderDetails) => {
+	console.log("Creating ZaloPay order with details:", orderDetails);
 	let tableId = orderDetails.table ? orderDetails.table.id : null;
 	let discountId = orderDetails.discountId ? orderDetails.discountId : null;
 	const embed_data = {
@@ -1365,6 +1383,76 @@ const checkZaloPayOrderStatus = async (app_trans_id) => {
 	}
 };
 
+let CancelOrderDetail = (data) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			// Find the OrderDetail to be deleted
+			let orderDetail = await db.OrderDetail.findOne({
+				where: {
+					dishId: data.dishData.id,
+					orderSession: data.dishData.orderSession,
+					orderId: data.orderId,
+				},
+				include: [
+					{
+						model: db.Dish,
+						attributes: ["id", "name", "price"],
+					},
+				],
+			});
+
+			if (!orderDetail) {
+				return resolve({
+					errCode: 1,
+					errMessage: "Order detail not found",
+				});
+			}
+
+			// Insert into CancelledOrderDetails
+			await db.CancelledOrderDetail.create({
+				orderId: orderDetail.orderId,
+				dishId: orderDetail.dishId,
+				quantity: orderDetail.quantity,
+				reason: data.reason,
+				description: data.description || null,
+			});
+
+			// Delete the OrderDetail
+			await orderDetail.destroy();
+
+			resolve({
+				errCode: 0,
+				errMessage: "Order detail cancelled successfully",
+			});
+		} catch (e) {
+			console.log(e);
+			reject({
+				errCode: 1,
+				errMessage: "Error cancelling order detail",
+			});
+		}
+	});
+};
+
+let GetCancellationsByOrderId = (orderId) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			let cancellations = await db.CancelledOrderDetail.findAll({
+				where: { orderId: orderId },
+				include: [
+					{
+						model: db.Dish,
+						attributes: ["name", "price"],
+					},
+				],
+			});
+			resolve(cancellations);
+		} catch (e) {
+			reject(e);
+		}
+	});
+};
+
 module.exports = {
 	GetAllTable,
 	GetAllOrder,
@@ -1402,4 +1490,6 @@ module.exports = {
 	CreateDiscount,
 	UpdateDiscounts,
 	DeleteDiscount,
+	CancelOrderDetail,
+	GetCancellationsByOrderId,
 };
