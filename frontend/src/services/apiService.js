@@ -337,6 +337,21 @@ const DeleteDiscount = (id) => {
 			console.log(err);
 		});
 };
+
+const CancelOrderDetail = (data) => {
+	return axios.post("/api/cancel-order-detail", data).then((response) => {
+		return response;
+	});
+};
+
+const GetCancellationsByOrderId = (orderId) => {
+	return axios
+		.get(`/api/get-cancellations-by-order-id?orderId=${orderId}`)
+		.then((response) => {
+			return response;
+		});
+};
+
 export {
 	GetAllTable,
 	GetAllDish,
@@ -371,4 +386,6 @@ export {
 	UpdateDiscounts,
 	CreateDiscount,
 	DeleteDiscount,
+	CancelOrderDetail,
+	GetCancellationsByOrderId,
 };

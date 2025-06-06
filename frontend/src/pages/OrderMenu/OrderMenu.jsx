@@ -12,9 +12,12 @@ import {
 	UpdateOrderDetail,
 	UpdateOrder,
 	CreateInvoice,
+	CancelOrderDetail,
 } from "../../services/apiService";
 import { io } from "socket.io-client";
 import CozeChat from "../../Component/ChatBot/CozeChat";
+import { Modal, Button, Form } from "react-bootstrap";
+
 const OrderMenu = () => {
 	const location = useLocation();
 	const history = useHistory();
@@ -31,6 +34,11 @@ const OrderMenu = () => {
 	const [orderStatus, setOrderStatus] = useState({});
 	const [completedOrders, setCompletedOrders] = useState([]);
 	const [currentOrder, setCurrentOrder] = useState({});
+	const [showCancelModal, setShowCancelModal] = useState(false);
+	const [cancelItem, setCancelItem] = useState(null);
+	const [cancelReason, setCancelReason] = useState("");
+	const [cancelDescription, setCancelDescription] = useState("");
+
 	const GetDish = async () => {
 		try {
 			let dishID = "ALL";
@@ -365,10 +373,63 @@ const OrderMenu = () => {
 		toast.success(
 			`Đã áp dụng ${pointsToUse} điểm, giảm ${(
 				pointsToUse * 100
-			).toLocaleString()}đ`
+			).toLocaleString()} VND`
 		);
 	};
-
+	const handleCancelItem = (item) => {
+		setCancelItem(item);
+		setShowCancelModal(true);
+	};
+	const submitCancellation = async () => {
+		let data = {
+			dishData: cancelItem,
+			orderId: order.id,
+			reason: cancelReason,
+			description: cancelDescription,
+		};
+		try {
+			let response = await CancelOrderDetail(data);
+			if (response && response.errCode === 0) {
+				toast.success("Đã hủy món thành công");
+				// Emit cancellation event to socket
+				if (socket) {
+					socket.emit("dishCancelled", {
+						orderId: order.id,
+						dishId: cancelItem.id,
+						reason: cancelReason,
+						description: cancelDescription,
+					});
+				}
+				// Update completedOrders state directly
+				setCompletedOrders((prev) =>
+					prev.map((existingOrder) => {
+						const updatedItems = Object.entries(existingOrder.items)
+							.filter(
+								([key, item]) =>
+									key !== `${cancelItem.id}-${cancelItem.orderSession}`
+							)
+							.reduce((acc, [key, item]) => {
+								acc[key] = item;
+								return acc;
+							}, {});
+						return {
+							...existingOrder,
+							items: updatedItems,
+						};
+					})
+				);
+				setShowCancelModal(false);
+				setCancelItem(null);
+				setCancelReason("");
+				setCancelDescription("");
+			} else {
+				toast.error("Không thể hủy món");
+			}
+		} catch (error) {
+			console.error("Error cancelling item:", error);
+			toast.error("Đã xảy ra lỗi khi hủy món");
+		}
+	};
 	useEffect(() => {
 		// Ensure pointsToUse does not exceed customer points
 		if (customer && pointsToUse > customer.points) {
@@ -456,18 +517,16 @@ const OrderMenu = () => {
 				<div className="container">
 					<div className="row align-items-center">
 						<div className="col-md-6">
-							<h1 className="text-white mb-1 fw-bold">Thực Đơn</h1>
-							<p className="text-white-50 mb-0">
-								Chọn món ăn yêu thích của bạn
-							</p>
+							<h1 className="text-white mb-1 fw-bold">Menu</h1>
+							<p className="text-white-50 mb-0">Choose your favorite dishes</p>
 						</div>
 						<div className="col-md-6 text-md-end">
 							<div className="d-inline-block bg-white bg-opacity-10 rounded p-3">
 								<p className="m-0 text-white">
-									<i className="bi bi-table me-2"></i>Bàn: {table.tableNumber}
+									<i className="bi bi-table me-2"></i>Table: {table.tableNumber}
 								</p>
 								<p className="m-0 text-white">
-									<i className="bi bi-person me-2"></i>Phục vụ:{" "}
+									<i className="bi bi-person me-2"></i>Served by:{" "}
 									{user.account.fullName}
 								</p>
 							</div>
@@ -655,7 +714,7 @@ const OrderMenu = () => {
 								{/* Customer Info */}
 								<div className="mb-4">
 									<div className="d-flex justify-content-between align-items-center mb-3">
-										<h5 className="fw-bold mb-0">Thông Tin Khách Hàng</h5>
+										<h5 className="fw-bold mb-0">Customer Information</h5>
 										<span className="badge bg-primary bg-opacity-10 text-primary p-2">
 											<i className="bi bi-coin me-1"></i>
 											{customer.points} điểm
@@ -664,11 +723,11 @@ const OrderMenu = () => {
 									<div className="bg-light p-3 rounded-3">
 										<div className="mb-2">
 											<i className="bi bi-person-circle me-2 text-primary"></i>
-											<strong>Khách hàng:</strong> {customer.name}
+											<strong>Customer:</strong> {customer.name}
 										</div>
 										<div>
 											<i className="bi bi-telephone me-2 text-primary"></i>
-											<strong>Điện thoại:</strong> {customer.phone}
+											<strong>Phone:</strong> {customer.phone}
 										</div>
 									</div>
 								</div>
@@ -677,11 +736,11 @@ const OrderMenu = () => {
 
 								{/* Points Redemption */}
 								<div className="mb-4">
-									<h5 className="fw-bold mb-3">Sử Dụng Điểm</h5>
+									<h5 className="fw-bold mb-3">Use Points</h5>
 									<div className="bg-light p-3 rounded-3">
 										<div className="mb-2 text-muted small">
 											<i className="bi bi-info-circle me-1"></i>
-											10 điểm = 1,000đ giảm giá
+											10 points = 1,000 VND discount
 										</div>
 										<div className="d-flex gap-2">
 											<input
@@ -713,13 +772,13 @@ const OrderMenu = () => {
 
 								{/* Order Items */}
 								<div className="mb-4">
-									<h5 className="fw-bold mb-3">Món Đã Chọn</h5>
+									<h5 className="fw-bold mb-3">Selected Items</h5>
 
 									{/* Completed Orders */}
 									{completedOrders.map((order, orderIndex) => (
 										<div key={orderIndex} className="mb-4">
 											<div className="d-flex justify-content-between align-items-center mb-2">
-												<h6 className="mb-0">Đơn hàng #{orderIndex + 1}</h6>
+												<h6 className="mb-0">Order #{orderIndex + 1}</h6>
 												<small className="text-muted">
 													{new Date(order.timestamp).toLocaleTimeString()}
 												</small>
@@ -728,9 +787,9 @@ const OrderMenu = () => {
 												<table className="table table-borderless">
 													<thead className="table-light">
 														<tr>
-															<th>Món</th>
-															<th className="text-center">SL</th>
-															<th className="text-end">Tổng</th>
+															<th>Dish</th>
+															<th className="text-center">Qty</th>
+															<th className="text-end">Total</th>
 														</tr>
 													</thead>
 													<tbody>
@@ -757,6 +816,14 @@ const OrderMenu = () => {
 																			style={{ width: "20px", height: "20px" }}
 																		/>
 																	</div>
+																	{!item.status && (
+																		<button
+																			className="btn btn-danger btn-sm ms-2"
+																			onClick={() => handleCancelItem(item)}
+																		>
+																			Cancel
+																		</button>
+																	)}
 																</td>
 															</tr>
 														))}
@@ -772,7 +839,7 @@ const OrderMenu = () => {
 											<table className="table table-borderless">
 												<thead className="table-light">
 													<tr>
-														<th>Món mới</th>
+														<th>New Dish</th>
 														<th className="text-center">SL</th>
 														<th className="text-end">Tổng</th>
 													</tr>
@@ -826,7 +893,7 @@ const OrderMenu = () => {
 													className="bi bi-basket text-muted"
 													style={{ fontSize: "2rem" }}
 												></i>
-												<p className="text-muted mb-0">Giỏ hàng trống</p>
+												<p className="text-muted mb-0">Cart is empty</p>
 											</div>
 										)}
 								</div>
@@ -835,17 +902,17 @@ const OrderMenu = () => {
 								<div className="bg-light p-3 rounded-3 mb-3">
 									{completedOrders.length > 0 && (
 										<div className="d-flex justify-content-between mb-2">
-											<span>Tổng đơn đã đặt:</span>
+											<span>Total previous orders:</span>
 											<span>
-												{calculateCompletedOrdersTotal().toLocaleString()}đ
+												{calculateCompletedOrdersTotal().toLocaleString()} VND
 											</span>
 										</div>
 									)}
 
 									{Object.values(orderItems).length > 0 && (
 										<div className="d-flex justify-content-between mb-2">
-											<span>Món mới:</span>
-											<span>{calculateSubtotal().toLocaleString()}đ</span>
+											<span>New items:</span>
+											<span>{calculateSubtotal().toLocaleString()} VND</span>
 										</div>
 									)}
 
@@ -853,16 +920,16 @@ const OrderMenu = () => {
 										<div className="d-flex justify-content-between mb-2 text-success">
 											<span>
 												<i className="bi bi-tags me-1"></i>
-												Giảm giá ({appliedPoints} điểm):
+												Discount ({appliedPoints} points):
 											</span>
-											<span>-{calculateDiscount().toLocaleString()}đ</span>
+											<span>-{calculateDiscount().toLocaleString()} VND</span>
 										</div>
 									)}
 
 									<div className="d-flex justify-content-between fw-bold pt-2 border-top mt-2">
-										<span>Tổng cộng:</span>
+										<span>Total:</span>
 										<span className="text-primary fs-5">
-											{calculateGrandTotal().toLocaleString()}đ
+											{calculateGrandTotal().toLocaleString()} VND
 										</span>
 									</div>
 								</div>
@@ -877,7 +944,7 @@ const OrderMenu = () => {
 												onClick={handleSubmitOrder}
 											>
 												<i className="bi bi-check-circle me-2"></i>
-												Xác nhận đặt món
+												Confirm Order
 											</button>
 										)}
 										{completedOrders.length > 0 && (
@@ -892,7 +959,7 @@ const OrderMenu = () => {
 												}
 											>
 												<i className="bi bi-credit-card me-2"></i>
-												Thanh toán
+												Payment
 											</button>
 										)}
 									</div>
@@ -902,6 +969,48 @@ const OrderMenu = () => {
 					</div>
 				</div>
 			</div>
+
+			{/* Cancellation Modal */}
+			<Modal show={showCancelModal} onHide={() => setShowCancelModal(false)}>
+				<Modal.Header closeButton>
+					<Modal.Title>Cancel Item</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
+					<Form.Group>
+						<Form.Label>Reason</Form.Label>
+						<Form.Select
+							value={cancelReason}
+							onChange={(e) => setCancelReason(e.target.value)}
+						>
+							<option value="">Select a reason</option>
+							<option value="Out of stock">Out of stock</option>
+							<option value="Customer changed mind">
+								Customer changed mind
+							</option>
+							<option value="Other">Other</option>
+						</Form.Select>
+					</Form.Group>
+					{cancelReason === "Other" && (
+						<Form.Group className="mt-3">
+							<Form.Label>Description</Form.Label>
+							<Form.Control
+								as="textarea"
+								rows={3}
+								value={cancelDescription}
+								onChange={(e) => setCancelDescription(e.target.value)}
+							/>
+						</Form.Group>
+					)}
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant="secondary" onClick={() => setShowCancelModal(false)}>
+						Close
+					</Button>
+					<Button variant="primary" onClick={submitCancellation}>
+						Submit
+					</Button>
+				</Modal.Footer>
+			</Modal>
 		</div>
 	);
 };

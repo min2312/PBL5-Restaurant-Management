@@ -366,7 +366,18 @@ const ReceptionistDashboard = () => {
 		setSelectedTable(table);
 		setModalIsOpen(true);
 	};
-
+	const handleCancelOrder = (table) => {
+		if (!socket) {
+			toast.error("Socket connection not established");
+			return;
+		}
+		let data = {
+			table: table,
+			status: "Cancelled",
+		};
+		socket.emit("updateTable", data);
+		toast.success("Cancel Order Success");
+	};
 	// Update handleOpenPayment to properly separate loyalty discount
 	const handleOpenPayment = async (table) => {
 		try {
@@ -395,7 +406,6 @@ const ReceptionistDashboard = () => {
 					customerInfo,
 					selectedDiscount: null, // Reset selected discount
 				});
-
 				setPaymentModalOpen(true);
 			} else {
 				toast.error(response.errMessage || "Failed to get invoice");
@@ -497,6 +507,7 @@ const ReceptionistDashboard = () => {
 					: -paymentInfo.adminDiscount);
 
 			let data = {
+				customerInfo: paymentInfo.customerInfo,
 				orderId: paymentInfo.invoiceItems[0].orderId,
 				customerId: paymentInfo.invoiceItems[0].Order.customerId,
 				discount: paymentInfo.loyaltyDiscount / 100, // Convert to appropriate format for backend
@@ -549,6 +560,7 @@ const ReceptionistDashboard = () => {
 						: -paymentInfo.adminDiscount);
 
 				let data = {
+					customerInfo: paymentInfo.customerInfo,
 					orderId: paymentInfo.invoiceItems[0].orderId,
 					customerId: paymentInfo.invoiceItems[0].Order.customerId,
 					discount: paymentInfo.loyaltyDiscount / 100,
@@ -709,14 +721,17 @@ const ReceptionistDashboard = () => {
 											<div className="position-absolute top-0 end-0 m-2">
 												<span
 													className={`badge ${
-														item.status === "AVAILABLE"
+														item.status === "AVAILABLE" ||
+														item.status === "Cancelled"
 															? "bg-success"
 															: item.status === "Completed"
 															? "bg-primary"
 															: "bg-danger"
 													}`}
 												>
-													{item.status}
+													{item.status === "Cancelled"
+														? "AVAILABLE"
+														: item.status}
 												</span>
 											</div>
 											<div className="card-body p-4 text-center">
@@ -733,7 +748,8 @@ const ReceptionistDashboard = () => {
 												<h5 className="fw-bold mb-3">
 													Table {item.tableNumber}
 												</h5>
-												{item.status === "AVAILABLE" ? (
+												{item.status === "AVAILABLE" ||
+												item.status === "Cancelled" ? (
 													<button
 														type="button"
 														onClick={() => handleTableSelection(item)}
@@ -752,6 +768,16 @@ const ReceptionistDashboard = () => {
 													>
 														<i className="bi bi-cash-stack me-2"></i>
 														Payment
+													</button>
+												) : item.status === "Pending" ? (
+													<button
+														type="button"
+														onClick={() => handleCancelOrder(item)}
+														className="btn btn-danger w-100 py-2"
+														style={{ borderRadius: "12px" }}
+													>
+														<i className="bi bi-x-circle me-2"></i>
+														Cancel Order
 													</button>
 												) : (
 													<button

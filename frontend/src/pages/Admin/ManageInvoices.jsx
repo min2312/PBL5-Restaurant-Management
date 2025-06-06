@@ -9,12 +9,15 @@ import {
 	Row,
 	Col,
 	InputGroup,
+	Tabs,
+	Tab,
 } from "react-bootstrap";
 import { toast } from "react-toastify";
 import {
 	GetAllInvoice,
 	GetAllOrder,
 	GetAllOrderDetail,
+	GetCancellationsByOrderId,
 } from "../../services/apiService";
 import {
 	FaFileInvoiceDollar,
@@ -52,6 +55,9 @@ const ManageInvoices = () => {
 	const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
 	const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
 	const [orderItemsLoading, setOrderItemsLoading] = useState(false);
+
+	// States for cancellations
+	const [cancellations, setCancellations] = useState([]);
 
 	// Fetch invoices and reference data on component mount
 	useEffect(() => {
@@ -99,6 +105,16 @@ const ManageInvoices = () => {
 			}
 		} catch (error) {
 			console.error("Error fetching orders:", error);
+		}
+	};
+
+	// Fetch cancellations for the selected order
+	const fetchCancellations = async (orderId) => {
+		try {
+			const response = await GetCancellationsByOrderId(orderId);
+			setCancellations(response.cancellations || []);
+		} catch (error) {
+			toast.error("Failed to fetch cancellations");
 		}
 	};
 
@@ -166,6 +182,7 @@ const ManageInvoices = () => {
 	const handleViewOrderDetails = async (invoice) => {
 		setOrderItemsLoading(true);
 		try {
+			await fetchCancellations(invoice.orderId);
 			// Find the order in the orders array
 			const order = orders.find((order) => order.id === invoice.orderId);
 			if (order) {
@@ -837,6 +854,35 @@ const ManageInvoices = () => {
 											</div>
 										</div>
 									</div>
+
+									{/* Order Cancellations Section */}
+									{cancellations.length > 0 && (
+										<div className="card mt-4 border-0 shadow-sm">
+											<div className="card-header bg-danger text-white">
+												<h5 className="mb-0 fw-bold">Order Cancellations</h5>
+											</div>
+											<div className="card-body">
+												<table className="table">
+													<thead>
+														<tr>
+															<th>Dish</th>
+															<th>Reason</th>
+															<th>Description</th>
+														</tr>
+													</thead>
+													<tbody>
+														{cancellations.map((cancel) => (
+															<tr key={cancel.id}>
+																<td>{cancel.Dish.name}</td>
+																<td>{cancel.reason}</td>
+																<td>{cancel.description || "N/A"}</td>
+															</tr>
+														))}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									)}
 								</>
 							) : (
 								<div className="alert alert-info d-flex align-items-center">
