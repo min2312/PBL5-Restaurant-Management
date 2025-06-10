@@ -1,0 +1,97 @@
+id,CookingTime,CATEGORY_PRIORITY,name,Category
+195,20,2,Rau diếp cuốn tôm đồng,Món khai vị
+196,25,2,Chạo tôm cuốn dừa,Món khai vị
+197,15,2,Chạo su hào sợi,Món khai vị
+198,20,2,Gỏi bò bóp thấu,Món khai vị
+199,20,2,Hoa chuối xào mẻ,Món khai vị
+200,15,2,Rau muống chẻ muối vừng,Món khai vị
+201,25,2,Nộm măng tai lợn,Món khai vị
+202,15,3,Đậu que xào ruốc tôm,"Món Rau, củ, quả"
+203,10,3,Củ cải xào trứng,"Món Rau, củ, quả"
+204,30,3,Cà tím om nồi đất,"Món Rau, củ, quả"
+205,10,3,Bầu luộc chấm muối vừng,"Món Rau, củ, quả"
+206,10,3,Rau muống luộc chấm tương bần,"Món Rau, củ, quả"
+207,10,3,Rau lang luộc chấm tương,"Món Rau, củ, quả"
+208,15,3,Rau muống xào tỏi,"Món Rau, củ, quả"
+209,20,3,Mướp hương xào mề gà,"Món Rau, củ, quả"
+210,15,3,Su hào xào tóp mỡ,"Món Rau, củ, quả"
+211,15,3,Rau lang xào tỏi,"Món Rau, củ, quả"
+212,20,3,Dưa chua xào tóp mỡ,"Món Rau, củ, quả"
+213,25,6,Cà tím cuốn thịt chiên,Món ăn nhẹ
+214,20,6,Tóp mỡ rim cà chua,Món ăn nhẹ
+215,30,6,Nem Hà Nội,Món ăn nhẹ
+216,25,6,Cua đồng rang lá lốt,Món ăn nhẹ
+217,30,6,Chả ốc xưa nướng lá chuối,Món ăn nhẹ
+218,25,6,Gà cuộn lá nếp,Món ăn nhẹ
+219,20,6,Trám nhồi thịt chiên,Món ăn nhẹ
+220,25,6,Lươn đồng xào lá lốt,Món ăn nhẹ
+221,20,6,Thịt luộc muối chua ngọt,Món ăn nhẹ
+222,20,6,Nhộng tằm rang lá chanh,Món ăn nhẹ
+223,15,6,Khoai tây rang muối,Món ăn nhẹ
+224,25,6,Chân gà tắm mắm,Món ăn nhẹ
+225,30,6,Mộc tôm,Món ăn nhẹ
+226,30,6,Bắp bò ngâm dấm,Món ăn nhẹ
+227,20,6,Gan tẩm ngũ vị rán,Món ăn nhẹ
+228,25,6,Sụn ức gà tắm mắm,Món ăn nhẹ
+229,30,6,Lươn cuốn mỡ chài,Món ăn nhẹ
+230,15,6,Đậu mơ tẩm hành,Món ăn nhẹ
+231,60,4,Thịt lợn kho trứng,Món chính
+232,25,4,Tôm đồng rang khế chua,Món chính
+233,45,4,Cá diếc kho tương,Món chính
+234,30,4,Xáo chuối,Món chính
+235,120,4,Thịt nấu đông,Món chính
+236,60,4,Rươi kho thịt với lá gấc,Món chính
+237,25,4,Thịt ba chỉ rang cháy cạnh,Món chính
+238,40,4,Chạch đồng kho tiêu,Món chính
+239,60,4,Cá trắm kho chuối xanh,Món chính
+240,45,4,Lươn om củ chuối,Món chính
+241,40,4,Cá rô đồng kho khế,Món chính
+242,50,4,Gà ta hấp cải xanh,Món chính
+243,35,4,Sườn chua ngọt bắc bộ,Món chính
+244,60,4,Thịt lợn kho tàu,Món chính
+245,25,4,Ba chỉ xào mắm tép,Món chính
+246,45,4,Ốc nấu chuối đậu,Món chính
+247,50,4,Cá trắm đen kho cúc tần,Món chính
+248,60,4,Chân giò nấu giả cày,Món chính
+249,30,4,Chim câu xào cà muối,Món chính
+250,90,4,Đuôi bò hầm tê cay,Món chính
+251,50,4,Vịt om sấu quả,Món chính
+252,60,4,Giò heo kho tộ đất,Món chính
+253,40,4,Ốc om mẻ nguyên con,Món chính
+254,30,4,Bắp cải cuộn thịt sốt cà chua,Món chính
+255,35,4,Gà ta rang gừng,Món chính
+256,60,4,Chân giò kho măng củ,Món chính
+257,45,4,Cá quả kho tộ,Món chính
+258,30,4,Chả đùm,Món chính
+259,50,4,Bắp bò kho gừng,Món chính
+260,90,4,Cá trắm kho riềng,Món chính
+261,40,4,Cá trê đồng om mẻ,Món chính
+262,30,8,Canh cá nấu dưa sắn,Món canh
+263,35,8,Canh ngó khoai,Món canh
+264,30,8,Canh khoai sọ rau rút,Món canh
+265,20,8,Canh tập tàng,Món canh
+266,30,8,Canh riêu hến,Món canh
+267,20,8,Canh hoa thiên lý thịt nạc,Món canh
+268,30,8,Canh khoai mỡ nấu tôm,Món canh
+269,40,8,Canh gân bò nấu dưa,Món canh
+270,20,8,Canh bầu tép,Món canh
+271,35,8,Canh bí đao sườn sụn,Món canh
+272,20,5,Cơm độn thập cẩm,Món ăn về cơm
+273,30,5,Xôi dừa hạt sen,Món ăn về cơm
+274,25,5,Xôi trám,Món ăn về cơm
+275,15,5,Cơm trắng thơm,Món ăn về cơm
+276,20,5,Cơm rang tóp mỡ,Món ăn về cơm
+277,25,5,Xôi sắn mỡ hành,Món ăn về cơm
+278,20,5,"Cơm trộn khoai, sắn",Món ăn về cơm
+279,45,7,Lẩu chim câu,Lẩu
+280,50,7,Lẩu cua sông Hồng,Lẩu
+281,40,7,Lẩu riêu cua bắp bò,Lẩu
+282,10,9,Chè Đỗ Đen,Món tráng miệng
+283,20,9,Cốm xào dừa,Món tráng miệng
+284,15,9,Chè Sắn Nóng,Món tráng miệng
+285,5,1,Trà Khói,Đồ uống
+286,5,1,Bia Hà Nội Sấu Non,Đồ uống
+287,5,1,Nước đỗ đen rang hạt sen hương chuối,Đồ uống
+288,5,1,Nước cóc muối tôm,Đồ uống
+289,5,1,Mía Muối Hương Việt,Đồ uống
+290,5,1,Tía Tô Thiên Hương,Đồ uống

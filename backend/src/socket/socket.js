@@ -30,6 +30,12 @@ const initSocket = (server) => {
 			io.emit("receiveOrder", data);
 		});
 
+		socket.on("chefCountUpdated", (data) => {
+			io.emit("chefCountUpdated", data);
+		});
+		socket.on("aiResults", (data) => {
+			io.emit("aiResults", data);
+		});
 		// Add handler for order status updates
 		socket.on("orderStatusUpdate", (data) => {
 			io.emit("orderStatusUpdate", data);

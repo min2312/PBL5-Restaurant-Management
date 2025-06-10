@@ -16,147 +16,26 @@ const Chef = () => {
 	const [loading, setLoading] = useState(true);
 	const [currentTime, setCurrentTime] = useState(new Date());
 	const [socket, setSocket] = useState(null);
+
+	// New states for cooking suggestions
+	const [showSuggestions, setShowSuggestions] = useState(false);
+	const [chefCount, setChefCount] = useState(() => {
+		const saved = sessionStorage.getItem("chefCount");
+		return saved ? parseInt(saved) : null;
+	});
+	const [showChefCountModal, setShowChefCountModal] = useState(false);
+	const [tempChefCount, setTempChefCount] = useState(1);
+
+	// New state for AI results
+	const [aiResults, setAiResults] = useState([]);
+	const [showAiSuggestions, setShowAiSuggestions] = useState(false);
+
 	// Fetch orders data from API
 	const fetchOrders = async () => {
 		setLoading(true);
 		try {
 			let respone = await GetAllOrderPeding();
 			let mockOrdersData = respone.order;
-			// 		id: 123,
-			// 		tableId: 1,
-			// 		Customer: {
-			// 			id: 1,
-			// 			name: "Nguyễn Văn A",
-			// 		},
-			// 		Table: {
-			// 			id: 1,
-			// 			name: "Bàn 1",
-			// 		},
-			// 		createdAt: new Date().toISOString(),
-			// 		OrderDetails: [
-			// 			{
-			// 				id: 1,
-			// 				dishId: 101,
-			// 				quantity: 2,
-			// 				status: false,
-			// 				Dish: {
-			// 					name: "Phở bò",
-			// 					Category: "Main Course",
-			// 				},
-			// 			},
-			// 			{
-			// 				id: 2,
-			// 				dishId: 102,
-			// 				quantity: 1,
-			// 				status: false,
-			// 				Dish: {
-			// 					name: "Gỏi cuốn",
-			// 					Category: "Appetizer",
-			// 				},
-			// 			},
-			// 			{
-			// 				id: 3,
-			// 				dishId: 103,
-			// 				quantity: 2,
-			// 				status: true,
-			// 				Dish: {
-			// 					name: "Nước mía",
-			// 					Category: "Drink",
-			// 				},
-			// 			},
-			// 		],
-			// 	},
-			// 	{
-			// 		id: 124,
-			// 		tableId: 3,
-			// 		Customer: {
-			// 			id: 2,
-			// 			name: "Trần Thị B",
-			// 		},
-			// 		Table: {
-			// 			id: 3,
-			// 			name: "Bàn 3",
-			// 		},
-			// 		createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-			// 		OrderDetails: [
-			// 			{
-			// 				id: 4,
-			// 				dishId: 104,
-			// 				quantity: 1,
-			// 				status: false,
-			// 				Dish: {
-			// 					name: "Cơm tấm",
-			// 					Category: "Main Course",
-			// 				},
-			// 			},
-			// 			{
-			// 				id: 5,
-			// 				dishId: 105,
-			// 				quantity: 2,
-			// 				status: true,
-			// 				Dish: {
-			// 					name: "Chả giò",
-			// 					Category: "Appetizer",
-			// 				},
-			// 			},
-			// 			{
-			// 				id: 6,
-			// 				dishId: 106,
-			// 				quantity: 3,
-			// 				status: true,
-			// 				Dish: {
-			// 					name: "Trà đá",
-			// 					Category: "Drink",
-			// 				},
-			// 			},
-			// 		],
-			// 	},
-			// 	{
-			// 		id: 125,
-			// 		tableId: 5,
-			// 		Customer: {
-			// 			id: 3,
-			// 			name: "Lê Văn C",
-			// 		},
-			// 		Table: {
-			// 			id: 5,
-			// 			name: "Bàn 5",
-			// 		},
-			// 		createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
-			// 		OrderDetails: [
-			// 			{
-			// 				id: 7,
-			// 				dishId: 107,
-			// 				quantity: 1,
-			// 				status: false,
-			// 				Dish: {
-			// 					name: "Bún bò Huế",
-			// 					Category: "Main Course",
-			// 				},
-			// 			},
-			// 			{
-			// 				id: 8,
-			// 				dishId: 108,
-			// 				quantity: 1,
-			// 				status: false,
-			// 				Dish: {
-			// 					name: "Bánh xèo",
-			// 					Category: "Main Course",
-			// 				},
-			// 			},
-			// 			{
-			// 				id: 9,
-			// 				dishId: 109,
-			// 				quantity: 2,
-			// 				status: true,
-			// 				Dish: {
-			// 					name: "Cà phê sữa đá",
-			// 					Category: "Drink",
-			// 				},
-			// 			},
-			// 		],
-			// 	},
-			// ];
 
 			// Filter out orders where all items are completed
 			const filteredOrders = mockOrdersData.filter((order) =>
@@ -187,6 +66,11 @@ const Chef = () => {
 
 		newSocket.on("connect", () => {
 			console.log("Receptionist connected to WebSocket:", newSocket.id);
+		});
+
+		newSocket.on("aiResults", (data) => {
+			console.log("Received AI results:", data);
+			setAiResults(data || []);
 		});
 
 		newSocket.on("receiveOrder", (data) => {
@@ -451,6 +335,135 @@ const Chef = () => {
 		return { pendingItems, completedItems };
 	}, []);
 
+	// Function to get dish details and table info for AI suggestions
+	const getDishDetailsForAI = useCallback(
+		(dishId) => {
+			let dishInfo = null;
+			let tableInfo = null;
+
+			// Find the dish in orders
+			orders.forEach((order) => {
+				if (order.OrderDetails) {
+					order.OrderDetails.forEach((detail) => {
+						if (detail.dishId === dishId && !detail.status) {
+							dishInfo = {
+								id: detail.dishId,
+								name: detail.Dish?.name || "Unknown Dish",
+								category: detail.Dish?.Category || "Other",
+								quantity: detail.quantity || 1,
+							};
+							tableInfo = {
+								tableId: order.tableId,
+								tableName: order.Table?.name || `Bàn ${order.tableId}`,
+								orderSession: detail.orderSession || 1,
+							};
+						}
+					});
+				}
+			});
+
+			return { dishInfo, tableInfo };
+		},
+		[orders]
+	);
+
+	// Add cooking suggestions logic before the return statement
+	const getCookingSuggestions = useMemo(() => {
+		if (!chefCount || chefCount <= 0) return [];
+
+		const suggestions = [];
+		const categoryTimes = {
+			"Món khai vị": 5,
+			"Đồ uống": 3,
+			"Món chính": 15,
+			"Món tráng miệng": 8,
+			"Món Rau, củ, quả": 10,
+			"Món ăn nhẹ": 7,
+			"Món canh": 12,
+			"Món ăn về cơm": 18,
+			Lẩu: 20,
+			Other: 10,
+		};
+
+		const allPendingItems = [];
+		orders.forEach((order) => {
+			if (order.OrderDetails) {
+				order.OrderDetails.forEach((detail) => {
+					if (!detail.status) {
+						allPendingItems.push({
+							name: detail.Dish?.name || "Unknown",
+							category: detail.Dish?.Category || "Other",
+							quantity: detail.quantity || 1,
+							tableId: order.tableId,
+							tableName: order.Table?.name || `Bàn ${order.tableId}`,
+						});
+					}
+				});
+			}
+		});
+
+		const categoryGroups = {};
+		allPendingItems.forEach((item) => {
+			if (!categoryGroups[item.category]) {
+				categoryGroups[item.category] = [];
+			}
+			categoryGroups[item.category].push(item);
+		});
+
+		Object.keys(categoryGroups).forEach((category) => {
+			const items = categoryGroups[category];
+			const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+			const baseTime = categoryTimes[category] || 10;
+			const estimatedTime = Math.ceil((totalQuantity * baseTime) / chefCount);
+
+			suggestions.push({
+				category,
+				items: items.length,
+				totalQuantity,
+				estimatedTime,
+				priority:
+					category === "Đồ uống" ? 1 : category === "Món khai vị" ? 2 : 3,
+			});
+		});
+
+		return suggestions.sort((a, b) => a.priority - b.priority);
+	}, [orders, chefCount]);
+
+	const handleToggleSuggestions = () => {
+		if (!chefCount) {
+			setShowChefCountModal(true);
+		} else {
+			setShowSuggestions(!showSuggestions);
+		}
+	};
+
+	const handleSaveChefCount = () => {
+		if (tempChefCount > 1) {
+			let data = {
+				chefCount: tempChefCount,
+				orders: orders,
+			};
+			if (socket) {
+				socket.emit("chefCountUpdated", data);
+			} else {
+				toast.error("Error.");
+				return;
+			}
+			setChefCount(tempChefCount);
+			sessionStorage.setItem("chefCount", tempChefCount.toString());
+			setShowChefCountModal(false);
+			setShowSuggestions(true);
+			toast.success(`Đã thiết lập ${tempChefCount} đầu bếp`);
+		} else {
+			toast.error("Số lượng đầu bếp phải lớn hơn 1");
+		}
+	};
+
+	const handleEditChefCount = () => {
+		setTempChefCount(chefCount || 1);
+		setShowChefCountModal(true);
+	};
+
 	return (
 		<div className="bg-light text-dark min-vh-100">
 			{/* Header - Made smaller and more compact */}
@@ -489,10 +502,10 @@ const Chef = () => {
 				</div>
 			</div>
 
-			{/* Stats */}
+			{/* Stats with Cooking Suggestions Toggle */}
 			<div className="container-fluid px-3 py-2 border-bottom border-secondary">
-				<div className="row gx-3">
-					<div className="col-md-4 d-flex align-items-center mb-md-0 mb-2">
+				<div className="row gx-3 align-items-center">
+					<div className="col-md-3 d-flex align-items-center mb-md-0 mb-2">
 						<div
 							className="rounded-circle bg-primary bg-opacity-25 p-2 me-2 text-center"
 							style={{ width: "40px", height: "40px" }}
@@ -504,7 +517,7 @@ const Chef = () => {
 							<div className="fs-5 fw-bold">{totalPendingOrders}</div>
 						</div>
 					</div>
-					<div className="col-md-4 d-flex align-items-center mb-md-0 mb-2">
+					<div className="col-md-3 d-flex align-items-center mb-md-0 mb-2">
 						<div
 							className="rounded-circle bg-warning bg-opacity-25 p-2 me-2 text-center"
 							style={{ width: "40px", height: "40px" }}
@@ -516,7 +529,7 @@ const Chef = () => {
 							<div className="fs-5 fw-bold">{totalPendingItems}</div>
 						</div>
 					</div>
-					<div className="col-md-4 d-flex align-items-center">
+					<div className="col-md-3 d-flex align-items-center mb-md-0 mb-2">
 						<div
 							className="rounded-circle bg-success bg-opacity-25 p-2 me-2 text-center"
 							style={{ width: "40px", height: "40px" }}
@@ -528,8 +541,180 @@ const Chef = () => {
 							<div className="fs-5 fw-bold">{totalCompletedItems}</div>
 						</div>
 					</div>
+					<div className="col-md-3 text-end">
+						<div className="d-flex align-items-center justify-content-end gap-2">
+							<button
+								className={`btn btn-sm ${
+									showSuggestions ? "btn-success" : "btn-outline-primary"
+								}`}
+								onClick={handleToggleSuggestions}
+								title="Gợi ý nấu ăn"
+							>
+								<i className="bi bi-lightbulb me-1"></i>
+								{showSuggestions ? "Ẩn gợi ý" : "Gợi ý nấu ăn"}
+								{chefCount && (
+									<span className="badge bg-light text-dark ms-1">
+										{chefCount} chef
+									</span>
+								)}
+							</button>
+							{aiResults.length > 0 && (
+								<button
+									className={`btn btn-sm ${
+										showAiSuggestions ? "btn-info" : "btn-outline-info"
+									}`}
+									onClick={() => setShowAiSuggestions(!showAiSuggestions)}
+									title="Phân công AI"
+								>
+									<i className="bi bi-robot me-1"></i>
+									{showAiSuggestions ? "Ẩn AI" : "Phân công AI"}
+								</button>
+							)}
+							{chefCount && (
+								<button
+									className="btn btn-sm btn-outline-secondary"
+									onClick={handleEditChefCount}
+									title="Chỉnh sửa số lượng đầu bếp"
+								>
+									<i className="bi bi-pencil"></i>
+								</button>
+							)}
+						</div>
+					</div>
 				</div>
+
+				{/* Cooking Suggestions Panel */}
+				{showSuggestions && (
+					<div className="mt-3">
+						<div className="card bg-white border-primary">
+							<div className="card-header bg-primary bg-opacity-10 py-2">
+								<h6 className="mb-0 text-primary">
+									<i className="bi bi-lightbulb-fill me-2"></i>
+									Gợi ý thứ tự nấu ăn ({chefCount} đầu bếp)
+								</h6>
+							</div>
+							<div className="card-body p-2">
+								{getCookingSuggestions.length > 0 ? (
+									<div className="row g-2">
+										{getCookingSuggestions.map((suggestion, index) => (
+											<div key={suggestion.category} className="col-md-4">
+												<div
+													className={`card border ${
+														suggestion.priority === 1
+															? "border-danger"
+															: suggestion.priority === 2
+															? "border-warning"
+															: "border-info"
+													}`}
+												>
+													<div className="card-body p-2">
+														<div className="d-flex align-items-center justify-content-between">
+															<div>
+																<span
+																	className={`badge ${
+																		suggestion.priority === 1
+																			? "bg-danger"
+																			: suggestion.priority === 2
+																			? "bg-warning"
+																			: "bg-info"
+																	} me-1`}
+																>
+																	#{index + 1}
+																</span>
+																<span className="fw-bold">
+																	{suggestion.category}
+																</span>
+															</div>
+															<span className="badge bg-secondary">
+																~{suggestion.estimatedTime} phút
+															</span>
+														</div>
+														<div className="mt-1 small text-muted">
+															{suggestion.items} món •{" "}
+															{suggestion.totalQuantity} phần
+														</div>
+													</div>
+												</div>
+											</div>
+										))}
+									</div>
+								) : (
+									<div className="text-center text-muted py-2">
+										<i className="bi bi-emoji-smile fs-4"></i>
+										<div>Không có món nào cần nấu!</div>
+									</div>
+								)}
+							</div>
+						</div>
+					</div>
+				)}
 			</div>
+
+			{/* Chef Count Setup Modal */}
+			{showChefCountModal && (
+				<div
+					className="modal show d-block"
+					style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+				>
+					<div className="modal-dialog modal-sm">
+						<div className="modal-content">
+							<div className="modal-header py-2">
+								<h6 className="modal-title">
+									<i className="bi bi-people me-2"></i>
+									{chefCount
+										? "Chỉnh sửa số lượng đầu bếp"
+										: "Số lượng đầu bếp"}
+								</h6>
+								<button
+									type="button"
+									className="btn-close"
+									onClick={() => setShowChefCountModal(false)}
+								></button>
+							</div>
+							<div className="modal-body">
+								<div className="mb-3">
+									<label className="form-label small">
+										{chefCount
+											? "Cập nhật số lượng đầu bếp đang làm việc:"
+											: "Hiện tại có bao nhiêu đầu bếp đang làm việc?"}
+									</label>
+									<input
+										type="number"
+										className="form-control"
+										min="1"
+										max="10"
+										value={tempChefCount}
+										onChange={(e) =>
+											setTempChefCount(parseInt(e.target.value) || 1)
+										}
+										autoFocus
+									/>
+									<div className="form-text">
+										Thông tin này giúp tính toán thời gian nấu ăn chính xác hơn
+									</div>
+								</div>
+							</div>
+							<div className="modal-footer py-2">
+								<button
+									type="button"
+									className="btn btn-secondary btn-sm"
+									onClick={() => setShowChefCountModal(false)}
+								>
+									Hủy
+								</button>
+								<button
+									type="button"
+									className="btn btn-primary btn-sm"
+									onClick={handleSaveChefCount}
+								>
+									<i className="bi bi-check me-1"></i>
+									{chefCount ? "Cập nhật" : "Lưu"}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* Main Content - Improved Grid Layout */}
 			<div className="container-fluid p-2">
@@ -692,6 +877,107 @@ const Chef = () => {
 					</div>
 				)}
 			</div>
+
+			{/* AI Suggestions Panel */}
+			{showAiSuggestions && aiResults.length > 0 && (
+				<div className="mt-3">
+					<div className="card bg-white border-info">
+						<div className="card-header bg-info bg-opacity-10 py-2">
+							<h6 className="mb-0 text-info">
+								<i className="bi bi-robot me-2"></i>
+								Phân công AI cho đầu bếp ({chefCount} đầu bếp)
+							</h6>
+						</div>
+						<div className="card-body p-2">
+							<div className="row g-2">
+								{aiResults.map((chefAssignment, index) => {
+									const chefId = chefAssignment.chef_id;
+									const tasks = chefAssignment.tasks || [];
+									const totalTime = chefAssignment.total_time || 0;
+
+									return (
+										<div key={`chef-${chefId}`} className="col-md-4">
+											<div className="card border-primary">
+												<div className="card-header bg-primary bg-opacity-10 py-2">
+													<div className="d-flex align-items-center justify-content-between">
+														<div>
+															<span className="badge bg-primary text-white p-2">
+																<i className="bi bi-person-fill me-1"></i>
+																Đầu bếp {chefId}
+															</span>
+														</div>
+														<span className="badge bg-secondary">
+															{totalTime} phút
+														</span>
+													</div>
+												</div>
+												<div className="card-body p-2">
+													{tasks.length > 0 ? (
+														<div className="list-group list-group-flush">
+															{tasks.map((task, taskIndex) => {
+																const { dishInfo, tableInfo } =
+																	getDishDetailsForAI(task.dishId);
+
+																return (
+																	<div
+																		key={`task-${taskIndex}`}
+																		className="list-group-item border-0 p-2"
+																	>
+																		<div className="d-flex align-items-start">
+																			<div className="flex-grow-1">
+																				<div className="fw-bold text-primary mb-1">
+																					{dishInfo?.name ||
+																						`Món #${task.dishId}`}
+																				</div>
+																				<div className="small text-muted mb-1">
+																					<i className="bi bi-clock me-1"></i>
+																					{task.CookingTime} phút
+																					<span className="ms-2">
+																						<i className="bi bi-star me-1"></i>
+																						Ưu tiên: {task.CATEGORY_PRIORITY}
+																					</span>
+																				</div>
+																				{tableInfo && (
+																					<div className="small">
+																						<span className="badge bg-success bg-opacity-10 text-success">
+																							<i className="bi bi-table me-1"></i>
+																							{tableInfo.tableName}
+																							{tableInfo.orderSession > 1 && (
+																								<span className="ms-1">
+																									(Lần {tableInfo.orderSession})
+																								</span>
+																							)}
+																						</span>
+																						{dishInfo?.quantity &&
+																							dishInfo.quantity > 1 && (
+																								<span className="badge bg-warning bg-opacity-10 text-warning ms-1">
+																									x{dishInfo.quantity}
+																								</span>
+																							)}
+																					</div>
+																				)}
+																			</div>
+																		</div>
+																	</div>
+																);
+															})}
+														</div>
+													) : (
+														<div className="text-center text-muted py-2">
+															<i className="bi bi-check-circle fs-4"></i>
+															<div className="small">Không có việc gì</div>
+														</div>
+													)}
+												</div>
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

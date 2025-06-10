@@ -102,6 +102,15 @@ const checkUserJWT = (req, res, next) => {
 };
 
 const verifySocketToken = (socket, next) => {
+	// Bypass cho AI service
+	if (
+		socket.handshake.headers["user-agent"]?.includes("python") ||
+		socket.handshake.headers["x-ai-service"] === "true"
+	) {
+		socket.user = { id: "ai-service", role: "AI", fullName: "AI Service" };
+		return next();
+	}
+
 	const token = socket.handshake.headers.authorization?.split(" ")[1];
 	if (!token) {
 		return next(new Error("Authentication error: Token is missing"));
