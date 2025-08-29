@@ -27,10 +27,9 @@ Hệ thống được phát triển với các công nghệ chính:
 
 - **Chức năng đặt bàn**  
  <img width="864" height="410" alt="image" src="https://github.com/user-attachments/assets/2bde1e66-a746-4976-8895-2de30c0b56ce" />
+ 
 - **Chức năng Chatbox**  
 <img width="970" height="467" alt="image" src="https://github.com/user-attachments/assets/65d61ae6-67c5-4f95-98ce-14f8c62c4554" />
+
 - **Chức năng AI phân công công việc của bếp**  
 <img width="1027" height="485" alt="image" src="https://github.com/user-attachments/assets/56a09a3a-befd-4671-86f9-1f54c47f1caa" />
-
-
-
