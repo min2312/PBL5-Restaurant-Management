@@ -33,4 +33,3 @@ Hệ thống được phát triển với các công nghệ chính:
 
 - **Chức năng AI phân công công việc của bếp**  
 <img width="1027" height="485" alt="image" src="https://github.com/user-attachments/assets/56a09a3a-befd-4671-86f9-1f54c47f1caa" />
-
